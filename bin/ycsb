@@ -213,6 +213,7 @@ def is_distribution():
 # presumes maven properly handles system-specific path separators
 # Given module is full module name eg. 'core' or 'couchbase-binding'
 def get_classpath_from_maven(module):
+    warn(module)
     output_file = tempfile.NamedTemporaryFile(delete=True)
     cmd = ["mvn", "-B", "-pl", "site.ycsb:" + module,
            "-am", "package", "-DskipTests",
@@ -304,6 +305,7 @@ def main():
         db_location = "core" if (binding == "basic" or binding == "basicts") else binding
         project = "core" if (binding == "basic" or binding == "basicts") else binding + "-binding"
         db_dir = os.path.join(ycsb_home, db_location)
+        warn(db_dir)
         # goes first so we can rely on side-effect of package
         maven_says = get_classpath_from_maven(project)
         # TODO when we have a version property, skip the glob
