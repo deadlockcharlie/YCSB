@@ -119,7 +119,7 @@ LICENSE file.
 <!--    <azurestorage.version>4.0.0</azurestorage.version>-->
 <!--    <cassandra.cql.version>3.0.0</cassandra.cql.version>-->
 <!--    <cloudspanner.version>6.91.1</cloudspanner.version>-->
-    <couchbase.version>1.4.10</couchbase.version>
+<!--    <couchbase.version>1.4.10</couchbase.version>-->
 <!--		<couchbase2.version>2.3.1</couchbase2.version>-->
 <!--		<crail.version>1.1-incubating</crail.version>-->
 <!--    <elasticsearch5-version>5.5.1</elasticsearch5-version>-->
@@ -169,7 +169,7 @@ LICENSE file.
 <!--    <module>azuretablestorage</module>-->
 <!--    <module>cassandra</module>-->
 <!--    <module>cloudspanner</module>-->
-    <module>couchbase</module>
+<!--    <module>couchbase</module>-->
 <!--		<module>couchbase2</module>-->
 <!--		<module>crail</module>-->
 <!--    <module>dynamodb</module>-->

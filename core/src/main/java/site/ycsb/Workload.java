@@ -36,20 +36,29 @@ import java.util.Properties;
  * client how many inserts to do. In the example above, both clients should have insertcount=500000.
  */
 public abstract class Workload {
-  public static final String INSERT_START_PROPERTY = "insertstart";
-  public static final String INSERT_COUNT_PROPERTY = "insertcount";
-  
-  public static final String INSERT_START_PROPERTY_DEFAULT = "0";
+  public static final String CREATE_START_PROPERTY = "insertstart";
+  public static final String CREATE_COUNT_PROPERTY = "insertcount";
+
+  public static final String CREATE_START_PROPERTY_DEFAULT = "0";
   
   private volatile AtomicBoolean stopRequested = new AtomicBoolean(false);
   
   /** Operations available for a database. */
   public enum Operation {
-    READ,
-    UPDATE,
-    INSERT,
-    SCAN,
-    DELETE
+    ADD_VERTEX,
+    ADD_EDGE,
+    GET_VERTEX_COUNT,
+    GET_EDGE_COUNT,
+    GET_EDGE_LABELS,
+    GET_VERTEX_WITH_PROPERTY,
+    GET_EDGE_WITH_PROPERTY,
+    GET_EDGES_WITH_LABEL,
+    SET_VERTEX_PROPERTY,
+    SET_EDGE_PROPERTY,
+    REMOVE_VERTEX,
+    REMOVE_EDGE,
+    REMOVE_VERTEX_PROPERTY,
+    REMOVE_EDGE_PROPERTY,
   }
   
   /**
@@ -82,15 +91,6 @@ public abstract class Workload {
    */
   public void cleanup() throws WorkloadException {
   }
-
-  /**
-   * Do one insert operation. Because it will be called concurrently from multiple client threads, this
-   * function must be thread safe. However, avoid synchronized, or the threads will block waiting for each
-   * other, and it will be difficult to reach the target throughput. Ideally, this function would have no side
-   * effects other than DB operations and mutations on threadstate. Mutations to threadstate do not need to be
-   * synchronized, since each thread has its own threadstate instance.
-   */
-  public abstract boolean doInsert(DB db, Object threadstate);
 
   /**
    * Do one transaction operation. Because it will be called concurrently from multiple client threads, this

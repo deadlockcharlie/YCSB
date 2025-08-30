@@ -46,12 +46,23 @@ public class DBWrapper extends DB {
   private static final AtomicBoolean LOG_REPORT_CONFIG = new AtomicBoolean(false);
 
   private final String scopeStringCleanup;
-  private final String scopeStringDelete;
   private final String scopeStringInit;
-  private final String scopeStringInsert;
-  private final String scopeStringRead;
-  private final String scopeStringScan;
-  private final String scopeStringUpdate;
+
+  private final String scopeAddVertex;
+  private final String scopeAddEdge;
+  private final String scopeGetVertexCount;
+  private final String scopeGetEdgeCount;
+  private final String scopeGetVertexWithProperty;
+  private final String scopeGetEdgeWithProperty;
+  private final String scopeGetEdgesWithLabel;
+  private final String scopeSetVertexProperty;
+  private final String scopeSetEdgeProperty;
+  private final String scopeRemoveVertex;
+  private final String scopeRemoveEdge;
+  private final String scopeRemoveVertexProperty;
+  private final String scopeRemoveEdgeProperty;
+
+
 
   public DBWrapper(final DB db, final Tracer tracer) {
     this.db = db;
@@ -59,12 +70,21 @@ public class DBWrapper extends DB {
     this.tracer = tracer;
     final String simple = db.getClass().getSimpleName();
     scopeStringCleanup = simple + "#cleanup";
-    scopeStringDelete = simple + "#delete";
     scopeStringInit = simple + "#init";
-    scopeStringInsert = simple + "#insert";
-    scopeStringRead = simple + "#read";
-    scopeStringScan = simple + "#scan";
-    scopeStringUpdate = simple + "#update";
+    scopeAddVertex = simple + "#addVertex";
+    scopeAddEdge = simple + "#addEdge";
+    scopeGetVertexCount = simple + "#getVertexCount";
+    scopeGetEdgeCount = simple + "#getEdgeCount";
+    scopeGetVertexWithProperty = simple + "#getVertexWithProperty";
+    scopeGetEdgeWithProperty = simple + "#getEdgeWithProperty";
+    scopeGetEdgesWithLabel = simple + "#getEdgesWithLabel";
+    scopeSetVertexProperty = simple + "#setVertexProperty";
+    scopeSetEdgeProperty = simple + "#setEdgeProperty";
+    scopeRemoveVertex = simple + "#removeVertex";
+    scopeRemoveEdge = simple + "#removeEdge";
+    scopeRemoveVertexProperty = simple + "#removeVertexProperty";
+    scopeRemoveEdgeProperty = simple + "#removeEdgeProperty";
+
   }
 
   /**
@@ -81,6 +101,22 @@ public class DBWrapper extends DB {
     return db.getProperties();
   }
 
+  private void measure(String op, Status result, long intendedStartTimeNanos,
+                       long startTimeNanos, long endTimeNanos) {
+    String measurementName = op;
+    if (result == null || !result.isOk()) {
+      if (this.reportLatencyForEachError ||
+          this.latencyTrackedErrors.contains(result.getName())) {
+        measurementName = op + "-" + result.getName();
+      } else {
+        measurementName = op + "-FAILED";
+      }
+    }
+    measurements.measure(measurementName,
+        (int) ((endTimeNanos - startTimeNanos) / 1000));
+    measurements.measureIntended(measurementName,
+        (int) ((endTimeNanos - intendedStartTimeNanos) / 1000));
+  }
   /**
    * Initialize any state for this DB.
    * Called once per DB instance; there is one DB instance per client thread.
@@ -123,131 +159,166 @@ public class DBWrapper extends DB {
     }
   }
 
-  /**
-   * Read a record from the database. Each field/value pair from the result
-   * will be stored in a HashMap.
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to read.
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A HashMap of field/value pairs for the result
-   * @return The result of the operation.
-   */
-  public Status read(String table, String key, Set<String> fields,
-                     Map<String, ByteIterator> result) {
-    try (final TraceScope span = tracer.newScope(scopeStringRead)) {
-      long ist = measurements.getIntendedStartTimeNs();
-      long st = System.nanoTime();
-      Status res = db.read(table, key, fields, result);
-      long en = System.nanoTime();
-      measure("READ", res, ist, st, en);
-      measurements.reportStatus("READ", res);
-      return res;
-    }
-  }
 
-  /**
-   * Perform a range scan for a set of records in the database.
-   * Each field/value pair from the result will be stored in a HashMap.
-   *
-   * @param table The name of the table
-   * @param startkey The record key of the first record to read.
-   * @param recordcount The number of records to read
-   * @param fields The list of fields to read, or null for all of them
-   * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
-   * @return The result of the operation.
-   */
-  public Status scan(String table, String startkey, int recordcount,
-                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    try (final TraceScope span = tracer.newScope(scopeStringScan)) {
-      long ist = measurements.getIntendedStartTimeNs();
-      long st = System.nanoTime();
-      Status res = db.scan(table, startkey, recordcount, fields, result);
-      long en = System.nanoTime();
-      measure("SCAN", res, ist, st, en);
-      measurements.reportStatus("SCAN", res);
-      return res;
-    }
-  }
-
-  private void measure(String op, Status result, long intendedStartTimeNanos,
-                       long startTimeNanos, long endTimeNanos) {
-    String measurementName = op;
-    if (result == null || !result.isOk()) {
-      if (this.reportLatencyForEachError ||
-          this.latencyTrackedErrors.contains(result.getName())) {
-        measurementName = op + "-" + result.getName();
-      } else {
-        measurementName = op + "-FAILED";
+    public Status addVertex(String table, String vertexId, Map<String, ByteIterator> properties) {
+      try (final TraceScope span = tracer.newScope(scopeAddVertex)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.addVertex(table, vertexId, properties);
+        long en = System.nanoTime();
+        measure("ADD_VERTEX", res, ist, st, en);
+        measurements.reportStatus("ADD_VERTEX", res);
+        return res;
       }
     }
-    measurements.measure(measurementName,
-        (int) ((endTimeNanos - startTimeNanos) / 1000));
-    measurements.measureIntended(measurementName,
-        (int) ((endTimeNanos - intendedStartTimeNanos) / 1000));
-  }
-
-  /**
-   * Update a record in the database. Any field/value pairs in the specified values HashMap will be written into the
-   * record with the specified record key, overwriting any existing values with the same field name.
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to write.
-   * @param values A HashMap of field/value pairs to update in the record
-   * @return The result of the operation.
-   */
-  public Status update(String table, String key,
-                       Map<String, ByteIterator> values) {
-    try (final TraceScope span = tracer.newScope(scopeStringUpdate)) {
-      long ist = measurements.getIntendedStartTimeNs();
-      long st = System.nanoTime();
-      Status res = db.update(table, key, values);
-      long en = System.nanoTime();
-      measure("UPDATE", res, ist, st, en);
-      measurements.reportStatus("UPDATE", res);
-      return res;
+    public Status addEdge(String table, String fromVertexId, String toVertexId, String label, Map<String, ByteIterator> properties) {
+      try (final TraceScope span = tracer.newScope(scopeAddEdge)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.addEdge(table, fromVertexId, toVertexId, label, properties);
+        long en = System.nanoTime();
+        measure("ADD_EDGE", res, ist, st, en);
+        measurements.reportStatus("ADD_EDGE", res);
+        return res;
+      }
     }
-  }
-
-  /**
-   * Insert a record in the database. Any field/value pairs in the specified
-   * values HashMap will be written into the record with the specified
-   * record key.
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to insert.
-   * @param values A HashMap of field/value pairs to insert in the record
-   * @return The result of the operation.
-   */
-  public Status insert(String table, String key,
-                       Map<String, ByteIterator> values) {
-    try (final TraceScope span = tracer.newScope(scopeStringInsert)) {
-      long ist = measurements.getIntendedStartTimeNs();
-      long st = System.nanoTime();
-      Status res = db.insert(table, key, values);
-      long en = System.nanoTime();
-      measure("INSERT", res, ist, st, en);
-      measurements.reportStatus("INSERT", res);
-      return res;
+    public Status getVertexCount() {
+      try (final TraceScope span = tracer.newScope(scopeGetVertexCount)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.getVertexCount();
+        long en = System.nanoTime();
+        measure("GET_VERTEX_COUNT", res, ist, st, en);
+        measurements.reportStatus("GET_VERTEX_COUNT", res);
+        return res;
+      }
     }
-  }
 
-  /**
-   * Delete a record from the database.
-   *
-   * @param table The name of the table
-   * @param key The record key of the record to delete.
-   * @return The result of the operation.
-   */
-  public Status delete(String table, String key) {
-    try (final TraceScope span = tracer.newScope(scopeStringDelete)) {
-      long ist = measurements.getIntendedStartTimeNs();
-      long st = System.nanoTime();
-      Status res = db.delete(table, key);
-      long en = System.nanoTime();
-      measure("DELETE", res, ist, st, en);
-      measurements.reportStatus("DELETE", res);
-      return res;
+    public Status getEdgeCount() {
+      try (final TraceScope span = tracer.newScope(scopeGetEdgeCount)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.getEdgeCount();
+        long en = System.nanoTime();
+        measure("GET_EDGE_COUNT", res, ist, st, en);
+        measurements.reportStatus("GET_EDGE_COUNT", res);
+        return res;
+      }
     }
-  }
+
+    public Status getEdgeLabels() {
+      try (final TraceScope span = tracer.newScope(scopeGetEdgesWithLabel)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.getEdgeLabels();
+        long en = System.nanoTime();
+        measure("GET_EDGE_LABELS", res, ist, st, en);
+        measurements.reportStatus("GET_EDGE_LABELS", res);
+        return res;
+      }
+    }
+
+    public Status getVertexWithProperty(String key, ByteIterator value) {
+      try (final TraceScope span = tracer.newScope(scopeGetVertexWithProperty)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.getVertexWithProperty(key, value);
+        long en = System.nanoTime();
+        measure("GET_VERTEX_WITH_PROPERTY", res, ist, st, en);
+        measurements.reportStatus("GET_VERTEX_WITH_PROPERTY", res);
+        return res;
+      }
+    }
+    public Status getEdgeWithProperty(String key, ByteIterator value) {
+      try (final TraceScope span = tracer.newScope(scopeGetEdgeWithProperty)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.getEdgeWithProperty(key, value);
+        long en = System.nanoTime();
+        measure("GET_EDGE_WITH_PROPERTY", res, ist, st, en);
+        measurements.reportStatus("GET_EDGE_WITH_PROPERTY", res);
+        return res;
+      }
+    }
+    public Status getEdgesWithLabel(String label) {
+      try (final TraceScope span = tracer.newScope(scopeGetEdgesWithLabel)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.getEdgesWithLabel(label);
+        long en = System.nanoTime();
+        measure("GET_EDGES_WITH_LABEL", res, ist, st, en);
+        measurements.reportStatus("GET_EDGES_WITH_LABEL", res);
+        return res;
+      }
+    }
+
+    public Status setVertexProperty(String vertexId, String key, ByteIterator value) {
+      try (final TraceScope span = tracer.newScope(scopeSetVertexProperty)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.setVertexProperty(vertexId, key, value);
+        long en = System.nanoTime();
+        measure("SET_VERTEX_PROPERTY", res, ist, st, en);
+        measurements.reportStatus("SET_VERTEX_PROPERTY", res);
+        return res;
+      }
+    }
+    public Status setEdgeProperty(String edgeId, String key, ByteIterator value) {
+      try (final TraceScope span = tracer.newScope(scopeSetEdgeProperty)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.setEdgeProperty(edgeId, key, value);
+        long en = System.nanoTime();
+        measure("SET_EDGE_PROPERTY", res, ist, st, en);
+        measurements.reportStatus("SET_EDGE_PROPERTY", res);
+        return res;
+      }
+
+    }
+
+    public Status removeVertex(String vertexId) {
+      try (final TraceScope span = tracer.newScope(scopeRemoveVertex)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.removeVertex(vertexId);
+        long en = System.nanoTime();
+        measure("REMOVE_VERTEX", res, ist, st, en);
+        measurements.reportStatus("REMOVE_VERTEX", res);
+        return res;
+      }
+    }
+    public Status removeEdge(String edgeId) {
+      try (final TraceScope span = tracer.newScope(scopeRemoveEdge)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.removeEdge(edgeId);
+        long en = System.nanoTime();
+        measure("REMOVE_EDGE", res, ist, st, en);
+        measurements.reportStatus("REMOVE_EDGE", res);
+        return res;
+      }
+    }
+
+    public Status removeVertexProperty(String vertexId, String key) {
+      try (final TraceScope span = tracer.newScope(scopeRemoveVertexProperty)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.removeVertexProperty(vertexId, key);
+        long en = System.nanoTime();
+        measure("REMOVE_VERTEX_PROPERTY", res, ist, st, en);
+        measurements.reportStatus("REMOVE_VERTEX_PROPERTY", res);
+        return res;
+      }
+    }
+    public Status removeEdgeProperty(String edgeId, String key) {
+      try (final TraceScope span = tracer.newScope(scopeRemoveEdgeProperty)) {
+        long ist = measurements.getIntendedStartTimeNs();
+        long st = System.nanoTime();
+        Status res = db.removeEdgeProperty(edgeId, key);
+        long en = System.nanoTime();
+        measure("REMOVE_EDGE_PROPERTY", res, ist, st, en);
+        measurements.reportStatus("REMOVE_EDGE_PROPERTY", res);
+        return res;
+      }
+    }
 }

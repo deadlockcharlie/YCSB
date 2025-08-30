@@ -132,9 +132,9 @@ public class ClientThread implements Runnable {
 
         while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
 
-          if (!workload.doInsert(db, workloadstate)) {
-            break;
-          }
+//          if (!workload.do(db, workloadstate)) {
+//            break;
+//          }
 
           opsdone++;
 

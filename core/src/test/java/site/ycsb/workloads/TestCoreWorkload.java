@@ -29,30 +29,29 @@ public class TestCoreWorkload {
   @Test
   public void createOperationChooser() {
     final Properties p = new Properties();
+    p.setProperty(CoreWorkload.CREATE_PROPORTION_PROPERTY, "0.20");
     p.setProperty(CoreWorkload.READ_PROPORTION_PROPERTY, "0.20");
     p.setProperty(CoreWorkload.UPDATE_PROPORTION_PROPERTY, "0.20");
-    p.setProperty(CoreWorkload.INSERT_PROPORTION_PROPERTY, "0.20");
-    p.setProperty(CoreWorkload.SCAN_PROPORTION_PROPERTY, "0.20");
-    p.setProperty(CoreWorkload.READMODIFYWRITE_PROPORTION_PROPERTY, "0.20");
+    p.setProperty(CoreWorkload.DELETE_PROPORTION_PROPERTY, "0.20");
     final DiscreteGenerator generator = CoreWorkload.createOperationGenerator(p);
-    final int[] counts = new int[5];
+    final int[] counts = new int[4];
     
     for (int i = 0; i < 100; ++i) {
       switch (generator.nextString()) {
-      case "READ":
+      case "CREATE":
         ++counts[0];
         break;
-      case "UPDATE":
+      case "READ":
         ++counts[1];
         break;
-      case "INSERT": 
+      case "UPDATE":
         ++counts[2];
         break;
-      case "SCAN":
+      case "DELETE":
         ++counts[3];
         break;
       default:
-        ++counts[4];
+        ++counts[1]; // treat everything else as a read
       } 
     }
     

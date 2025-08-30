@@ -70,7 +70,8 @@ public class CoreWorkload extends Workload {
    * The name of the database table to run queries against.
    */
   public static final String TABLENAME_PROPERTY = "table";
-
+  public static List<String> insertedVertices = Collections.synchronizedList(new ArrayList<String>());
+  public static List<String> insertedEdges = Collections.synchronizedList(new ArrayList<String>());
   /**
    * The default name of the database table to run queries against.
    */
@@ -203,13 +204,21 @@ public class CoreWorkload extends Workload {
   /**
    * The name of the property for the proportion of transactions that are reads.
    */
-  public static final String READ_PROPORTION_PROPERTY = "readproportion";
+  public static final String CREATE_PROPORTION_PROPERTY = "createproportion";
 
   /**
    * The default proportion of transactions that are reads.
    */
-  public static final String READ_PROPORTION_PROPERTY_DEFAULT = "0.95";
+  public static final String CREATE_PROPORTION_PROPERTY_DEFAULT = "0.95";
+  /**
+   * The name of the property for the proportion of transactions that are scans.
+   */
+  public static final String READ_PROPORTION_PROPERTY = "readproportion";
 
+  /**
+   * The default proportion of transactions that are scans.
+   */
+  public static final String READ_PROPORTION_PROPERTY_DEFAULT = "0.0";
   /**
    * The name of the property for the proportion of transactions that are updates.
    */
@@ -223,32 +232,15 @@ public class CoreWorkload extends Workload {
   /**
    * The name of the property for the proportion of transactions that are inserts.
    */
-  public static final String INSERT_PROPORTION_PROPERTY = "insertproportion";
+  public static final String DELETE_PROPORTION_PROPERTY = "deleteproportion";
 
   /**
    * The default proportion of transactions that are inserts.
    */
-  public static final String INSERT_PROPORTION_PROPERTY_DEFAULT = "0.0";
+  public static final String DELETE_PROPORTION_PROPERTY_DEFAULT = "0.0";
 
-  /**
-   * The name of the property for the proportion of transactions that are scans.
-   */
-  public static final String SCAN_PROPORTION_PROPERTY = "scanproportion";
 
-  /**
-   * The default proportion of transactions that are scans.
-   */
-  public static final String SCAN_PROPORTION_PROPERTY_DEFAULT = "0.0";
 
-  /**
-   * The name of the property for the proportion of transactions that are read-modify-write.
-   */
-  public static final String READMODIFYWRITE_PROPORTION_PROPERTY = "readmodifywriteproportion";
-
-  /**
-   * The default proportion of transactions that are scans.
-   */
-  public static final String READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT = "0.0";
 
   /**
    * The name of the property for the the distribution of requests across the keyspace. Options are
@@ -274,47 +266,6 @@ public class CoreWorkload extends Workload {
 
 
   /**
-   * The name of the property for the min scan length (number of records).
-   */
-  public static final String MIN_SCAN_LENGTH_PROPERTY = "minscanlength";
-
-  /**
-   * The default min scan length.
-   */
-  public static final String MIN_SCAN_LENGTH_PROPERTY_DEFAULT = "1";
-
-  /**
-   * The name of the property for the max scan length (number of records).
-   */
-  public static final String MAX_SCAN_LENGTH_PROPERTY = "maxscanlength";
-
-  /**
-   * The default max scan length.
-   */
-  public static final String MAX_SCAN_LENGTH_PROPERTY_DEFAULT = "1000";
-
-  /**
-   * The name of the property for the scan length distribution. Options are "uniform" and "zipfian"
-   * (favoring short scans)
-   */
-  public static final String SCAN_LENGTH_DISTRIBUTION_PROPERTY = "scanlengthdistribution";
-
-  /**
-   * The default max scan length.
-   */
-  public static final String SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT = "uniform";
-
-  /**
-   * The name of the property for the order to insert records. Options are "ordered" or "hashed"
-   */
-  public static final String INSERT_ORDER_PROPERTY = "insertorder";
-
-  /**
-   * Default insert order.
-   */
-  public static final String INSERT_ORDER_PROPERTY_DEFAULT = "hashed";
-
-  /**
    * Percentage data items that constitute the hot set.
    */
   public static final String HOTSPOT_DATA_FRACTION = "hotspotdatafraction";
@@ -337,14 +288,14 @@ public class CoreWorkload extends Workload {
   /**
    * How many times to retry when insertion of a single item to a DB fails.
    */
-  public static final String INSERTION_RETRY_LIMIT = "core_workload_insertion_retry_limit";
-  public static final String INSERTION_RETRY_LIMIT_DEFAULT = "0";
+  public static final String CREATION_RETRY_LIMIT = "core_workload_insertion_retry_limit";
+  public static final String CREATION_RETRY_LIMIT_DEFAULT = "0";
 
   /**
    * On average, how long to wait between the retries, in seconds.
    */
-  public static final String INSERTION_RETRY_INTERVAL = "core_workload_insertion_retry_interval";
-  public static final String INSERTION_RETRY_INTERVAL_DEFAULT = "3";
+  public static final String CREATION_RETRY_INTERVAL = "core_workload_insertion_retry_interval";
+  public static final String CREATION_RETRY_INTERVAL_DEFAULT = "3";
 
   /**
    * Field name prefix.
@@ -366,8 +317,8 @@ public class CoreWorkload extends Workload {
   protected long fieldcount;
   protected long recordcount;
   protected int zeropadding;
-  protected int insertionRetryLimit;
-  protected int insertionRetryInterval;
+  protected int creationRetryLimit;
+  protected int creationRetryInterval;
 
   private Measurements measurements = Measurements.getMeasurements();
 
@@ -438,17 +389,17 @@ public class CoreWorkload extends Workload {
     }
     String requestdistrib =
         p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
-    int minscanlength =
-        Integer.parseInt(p.getProperty(MIN_SCAN_LENGTH_PROPERTY, MIN_SCAN_LENGTH_PROPERTY_DEFAULT));
-    int maxscanlength =
-        Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
-    String scanlengthdistrib =
-        p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
+//    int minscanlength =
+//        Integer.parseInt(p.getProperty(MIN_SCAN_LENGTH_PROPERTY, MIN_SCAN_LENGTH_PROPERTY_DEFAULT));
+//    int maxscanlength =
+//        Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
+//    String scanlengthdistrib =
+//        p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 
     long insertstart =
-        Long.parseLong(p.getProperty(INSERT_START_PROPERTY, INSERT_START_PROPERTY_DEFAULT));
+        Long.parseLong(p.getProperty(CREATE_START_PROPERTY, CREATE_START_PROPERTY_DEFAULT));
     long insertcount=
-        Integer.parseInt(p.getProperty(INSERT_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
+        Integer.parseInt(p.getProperty(CREATE_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
     // Confirm valid values for insertstart and insertcount in relation to recordcount
     if (recordcount < (insertstart + insertcount)) {
       System.err.println("Invalid combination of insertstart, insertcount and recordcount.");
@@ -479,11 +430,11 @@ public class CoreWorkload extends Workload {
       System.out.println("Data integrity is enabled.");
     }
 
-    if (p.getProperty(INSERT_ORDER_PROPERTY, INSERT_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
-      orderedinserts = false;
-    } else {
-      orderedinserts = true;
-    }
+//    if (p.getProperty(CREATE_ORDER_PROPERTY, CREATE_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
+//      orderedinserts = false;
+//    } else {
+//      orderedinserts = true;
+//    }
 
     keysequence = new CounterGenerator(insertstart);
     operationchooser = createOperationGenerator(p);
@@ -512,7 +463,7 @@ public class CoreWorkload extends Workload {
       // that hasn't been inserted yet, will just ignore it and pick another key. this way, the size of
       // the keyspace doesn't change from the perspective of the scrambled zipfian generator
       final double insertproportion = Double.parseDouble(
-          p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
+          p.getProperty(CREATE_PROPORTION_PROPERTY, CREATE_PROPORTION_PROPERTY_DEFAULT));
       int opcount = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
       int expectednewkeys = (int) ((opcount) * insertproportion * 2.0); // 2 is fudge factor
 
@@ -532,19 +483,19 @@ public class CoreWorkload extends Workload {
 
     fieldchooser = new UniformLongGenerator(0, fieldcount - 1);
 
-    if (scanlengthdistrib.compareTo("uniform") == 0) {
-      scanlength = new UniformLongGenerator(minscanlength, maxscanlength);
-    } else if (scanlengthdistrib.compareTo("zipfian") == 0) {
-      scanlength = new ZipfianGenerator(minscanlength, maxscanlength);
-    } else {
-      throw new WorkloadException(
-          "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
-    }
+//    if (scanlengthdistrib.compareTo("uniform") == 0) {
+//      scanlength = new UniformLongGenerator(minscanlength, maxscanlength);
+//    } else if (scanlengthdistrib.compareTo("zipfian") == 0) {
+//      scanlength = new ZipfianGenerator(minscanlength, maxscanlength);
+//    } else {
+//      throw new WorkloadException(
+//          "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
+//    }
 
-    insertionRetryLimit = Integer.parseInt(p.getProperty(
-        INSERTION_RETRY_LIMIT, INSERTION_RETRY_LIMIT_DEFAULT));
-    insertionRetryInterval = Integer.parseInt(p.getProperty(
-        INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
+    creationRetryLimit = Integer.parseInt(p.getProperty(
+        CREATION_RETRY_LIMIT, CREATION_RETRY_LIMIT_DEFAULT));
+    creationRetryInterval = Integer.parseInt(p.getProperty(
+        CREATION_RETRY_INTERVAL, CREATION_RETRY_INTERVAL_DEFAULT));
   }
 
   /**
@@ -603,48 +554,53 @@ public class CoreWorkload extends Workload {
     return sb.toString();
   }
 
-  /**
-   * Do one insert operation. Because it will be called concurrently from multiple client threads,
-   * this function must be thread safe. However, avoid synchronized, or the threads will block waiting
-   * for each other, and it will be difficult to reach the target throughput. Ideally, this function would
-   * have no side effects other than DB operations.
-   */
-  @Override
-  public boolean doInsert(DB db, Object threadstate) {
-    int keynum = keysequence.nextValue().intValue();
-    String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-    HashMap<String, ByteIterator> values = buildValues(dbkey);
 
-    Status status;
-    int numOfRetries = 0;
-    do {
-      status = db.insert(table, dbkey, values);
-      if (null != status && status.isOk()) {
-        break;
-      }
-      // Retry if configured. Without retrying, the load process will fail
-      // even if one single insertion fails. User can optionally configure
-      // an insertion retry limit (default is 0) to enable retry.
-      if (++numOfRetries <= insertionRetryLimit) {
-        System.err.println("Retrying insertion, retry count: " + numOfRetries);
-        try {
-          // Sleep for a random number between [0.8, 1.2)*insertionRetryInterval.
-          int sleepTime = (int) (1000 * insertionRetryInterval * (0.8 + 0.4 * Math.random()));
-          Thread.sleep(sleepTime);
-        } catch (InterruptedException e) {
-          break;
-        }
 
-      } else {
-        System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries +
-            "Insertion Retry Limit: " + insertionRetryLimit);
-        break;
-
-      }
-    } while (true);
-
-    return null != status && status.isOk();
-  }
+//
+//
+//
+//  /**
+//   * Do one insert operation. Because it will be called concurrently from multiple client threads,
+//   * this function must be thread safe. However, avoid synchronized, or the threads will block waiting
+//   * for each other, and it will be difficult to reach the target throughput. Ideally, this function would
+//   * have no side effects other than DB operations.
+//   */
+//  @Override
+//  public boolean doInsert(DB db, Object threadstate) {
+//    int keynum = keysequence.nextValue().intValue();
+//    String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+//    HashMap<String, ByteIterator> values = buildValues(dbkey);
+//
+//    Status status;
+//    int numOfRetries = 0;
+//    do {
+//      status = db.insert(table, dbkey, values);
+//      if (null != status && status.isOk()) {
+//        break;
+//      }
+//      // Retry if configured. Without retrying, the load process will fail
+//      // even if one single insertion fails. User can optionally configure
+//      // an insertion retry limit (default is 0) to enable retry.
+//      if (++numOfRetries <= insertionRetryLimit) {
+//        System.err.println("Retrying insertion, retry count: " + numOfRetries);
+//        try {
+//          // Sleep for a random number between [0.8, 1.2)*insertionRetryInterval.
+//          int sleepTime = (int) (1000 * insertionRetryInterval * (0.8 + 0.4 * Math.random()));
+//          Thread.sleep(sleepTime);
+//        } catch (InterruptedException e) {
+//          break;
+//        }
+//
+//      } else {
+//        System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries +
+//            "Insertion Retry Limit: " + insertionRetryLimit);
+//        break;
+//
+//      }
+//    } while (true);
+//
+//    return null != status && status.isOk();
+//  }
 
   /**
    * Do one transaction operation. Because it will be called concurrently from multiple client
@@ -660,49 +616,69 @@ public class CoreWorkload extends Workload {
     }
 
     switch (operation) {
-    case "READ":
-      doTransactionRead(db);
-      break;
-    case "UPDATE":
-      doTransactionUpdate(db);
-      break;
-    case "INSERT":
-      doTransactionInsert(db);
-      break;
-    case "SCAN":
-      doTransactionScan(db);
-      break;
-    default:
-      doTransactionReadModifyWrite(db);
+      case "ADD_VERTEX":
+        doTransactionAddVertex(db);
+        break;
+      case "ADD_EDGE":
+        doTransactionAddEdge(db);
+        break;
+      case "GET_VERTEX_COUNT":
+        doTransactionGetVertexCount(db);
+        break;
+      case "GET_EDGE_COUNT":
+        doTransactionGetEdgeCount(db);
+        break;
+      case "GET_EDGE_LABELS":
+        doTransactionGetEdgeLabels(db);
+        break;
+      case "GET_VERTEX_WITH_PROPERTY":
+        doTransactionGetVertexWithProperty(db);
+        break;
+      case "GET_EDGE_WITH_PROPERTY":
+        doTransactionGetEdgeWithProperty(db);
+        break;
+      case "GET_EDGES_WITH_LABEL":
+        doTransactionGetEdgesWithLabel(db);
+        break;
+      case "SET_VERTEX_PROPERTY":
+        doTransactionSetVertexProperty(db);
+        break;
+      case "SET_EDGE_PROPERTY":
+        doTransactionSetEdgeProperty(db);
+        break;
+      case "REMOVE_VERTEX":
+        doTransactionRemoveVertex(db);
+        break;
+      case "REMOVE_EDGE":
+        doTransactionRemoveEdge(db);
+        break;
+        case "REMOVE_VERTEX_PROPERTY":
+        doTransactionRemoveVertexProperty(db);
+        break;
+      case "REMOVE_EDGE_PROPERTY":
+        doTransactionRemoveEdgeProperty(db);
+        break;
+      default:
+        doTransactionGetVertexCount(db);
     }
+
+//    case "READ":
+//      doTransactionRead(db);
+//      break;
+//    case "UPDATE":
+//      doTransactionUpdate(db);
+//      break;
+//    case "INSERT":
+//      doTransactionInsert(db);
+//      break;
+//    case "SCAN":
+//      doTransactionScan(db);
+//      break;
+//    default:
+//      doTransactionReadModifyWrite(db);
+//    }
 
     return true;
-  }
-
-  /**
-   * Results are reported in the first three buckets of the histogram under
-   * the label "VERIFY".
-   * Bucket 0 means the expected data was returned.
-   * Bucket 1 means incorrect data was returned.
-   * Bucket 2 means null data was returned when some data was expected.
-   */
-  protected void verifyRow(String key, HashMap<String, ByteIterator> cells) {
-    Status verifyStatus = Status.OK;
-    long startTime = System.nanoTime();
-    if (!cells.isEmpty()) {
-      for (Map.Entry<String, ByteIterator> entry : cells.entrySet()) {
-        if (!entry.getValue().toString().equals(buildDeterministicValue(key, entry.getKey()))) {
-          verifyStatus = Status.UNEXPECTED_STATE;
-          break;
-        }
-      }
-    } else {
-      // This assumes that null data is never valid
-      verifyStatus = Status.ERROR;
-    }
-    long endTime = System.nanoTime();
-    measurements.measure("VERIFY", (int) (endTime - startTime) / 1000);
-    measurements.reportStatus("VERIFY", verifyStatus);
   }
 
   long nextKeynum() {
@@ -719,134 +695,290 @@ public class CoreWorkload extends Workload {
     return keynum;
   }
 
-  public void doTransactionRead(DB db) {
+
+
+  public void doTransactionAddVertex(DB db) {
     // choose a random key
     long keynum = nextKeynum();
 
     String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
 
-    HashSet<String> fields = null;
+    HashMap<String, ByteIterator> values = buildValues(keyname);
 
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
-      fields = new HashSet<String>();
-      fields.add(fieldname);
-    } else if (dataintegrity || readallfieldsbyname) {
-      // pass the full field list if dataintegrity is on for verification
-      fields = new HashSet<String>(fieldnames);
-    }
-
-    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-    db.read(table, keyname, fields, cells);
-
-    if (dataintegrity) {
-      verifyRow(keyname, cells);
-    }
+    db.addVertex(table, keyname, values);
+    insertedVertices.add(keyname);
   }
 
-  public void doTransactionReadModifyWrite(DB db) {
+  public void doTransactionAddEdge(DB db) {
     // choose a random key
-    long keynum = nextKeynum();
-
-    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-
-    HashSet<String> fields = null;
-
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
-      fields = new HashSet<String>();
-      fields.add(fieldname);
+    if (insertedVertices.size() < 2) {
+      return;
     }
-
-    HashMap<String, ByteIterator> values;
-
-    if (writeallfields) {
-      // new data for all the fields
-      values = buildValues(keyname);
-    } else {
-      // update a random field
-      values = buildSingleValue(keyname);
-    }
-
-    // do the transaction
-
-    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
-
-
-    long ist = measurements.getIntendedStartTimeNs();
-    long st = System.nanoTime();
-    db.read(table, keyname, fields, cells);
-
-    db.update(table, keyname, values);
-
-    long en = System.nanoTime();
-
-    if (dataintegrity) {
-      verifyRow(keyname, cells);
-    }
-
-    measurements.measure("READ-MODIFY-WRITE", (int) ((en - st) / 1000));
-    measurements.measureIntended("READ-MODIFY-WRITE", (int) ((en - ist) / 1000));
-  }
-
-  public void doTransactionScan(DB db) {
-    // choose a random key
-    long keynum = nextKeynum();
-
-    String startkeyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-
-    // choose a random scan length
-    int len = scanlength.nextValue().intValue();
-
-    HashSet<String> fields = null;
-
-    if (!readallfields) {
-      // read a random field
-      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
-
-      fields = new HashSet<String>();
-      fields.add(fieldname);
-    }
-
-    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
-  }
-
-  public void doTransactionUpdate(DB db) {
-    // choose a random key
-    long keynum = nextKeynum();
-
-    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-
-    HashMap<String, ByteIterator> values;
-
-    if (writeallfields) {
-      // new data for all the fields
-      values = buildValues(keyname);
-    } else {
-      // update a random field
-      values = buildSingleValue(keyname);
-    }
-
-    db.update(table, keyname, values);
-  }
-
-  public void doTransactionInsert(DB db) {
-    // choose the next key
-    long keynum = transactioninsertkeysequence.nextValue();
-
-    try {
-      String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-
-      HashMap<String, ByteIterator> values = buildValues(dbkey);
-      db.insert(table, dbkey, values);
-    } finally {
-      transactioninsertkeysequence.acknowledge(keynum);
+    else{
+      Collections.shuffle(insertedVertices);
+      long keynum = nextKeynum();
+      String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+      String source = insertedVertices.get(0);
+      String target = insertedVertices.get(1);
+      HashMap<String, ByteIterator> values = buildValues(source + "-" + target);
+      insertedEdges.add(keyname);
+      db.addEdge(table, keyname, source, target, values);
     }
   }
+
+  public void doTransactionGetVertexCount(DB db) {
+    db.getVertexCount();
+  }
+  public void doTransactionGetEdgeCount(DB db) {
+    db.getEdgeCount();
+  }
+  public void doTransactionGetEdgeLabels(DB db) {
+    db.getEdgeLabels();
+  }
+  public void doTransactionGetVertexWithProperty(DB db) {
+    if(insertedVertices.isEmpty()) {
+      return;
+    }
+   Collections.shuffle(insertedVertices);
+   String key = insertedVertices.get(0);
+   HashMap<String, ByteIterator> values = buildValues(key);
+   //pick one string from values
+    String fieldkey = (String) values.keySet().toArray()[0];
+    ByteIterator fieldValue = values.get(fieldkey);
+
+   db.getVertexWithProperty(fieldkey, fieldValue);
+  }
+  public void doTransactionGetEdgeWithProperty(DB db) {
+    if(insertedEdges.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedEdges);
+    String key = insertedEdges.get(0);
+    HashMap<String, ByteIterator> values = buildValues(key);
+    //pick one string from values
+    String fieldkey = (String) values.keySet().toArray()[0];
+    ByteIterator fieldValue = values.get(fieldkey);
+    db.getEdgeWithProperty(fieldkey, fieldValue);
+  }
+  public void doTransactionGetEdgesWithLabel(DB db) {
+    db.getEdgesWithLabel(table);
+  }
+
+  public void doTransactionSetVertexProperty(DB db) {
+    if(insertedVertices.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedVertices);
+    String key = insertedVertices.get(0);
+    HashMap<String, ByteIterator> values = buildValues(key);
+    String field = (String) values.keySet().toArray()[0];
+    db.setVertexProperty(key, field, values.get(field));
+  }
+  public void doTransactionSetEdgeProperty(DB db) {
+    if(insertedEdges.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedEdges);
+    String key = insertedEdges.get(0);
+    HashMap<String, ByteIterator> values = buildValues(key);
+    String field = (String) values.keySet().toArray()[0];
+    db.setEdgeProperty(key, field, values.get(field));
+  }
+  public void doTransactionRemoveVertex(DB db) {
+    if (insertedVertices.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedVertices);
+    String key = insertedVertices.remove(0);
+    db.removeVertex(key);
+  }
+  public void doTransactionRemoveEdge(DB db) {
+    if (insertedEdges.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedEdges);
+    String key = insertedEdges.remove(0);
+    db.removeEdge(key);
+  }
+
+  public void doTransactionRemoveVertexProperty(DB db) {
+    if (insertedVertices.size() < 1) {
+      return;
+    }
+    Collections.shuffle(insertedVertices);
+    String key = insertedVertices.get(0);
+    HashMap<String, ByteIterator> values = buildValues(key);
+    String field = (String) values.keySet().toArray()[0];
+    db.removeVertexProperty(key, field);
+  }
+  public void doTransactionRemoveEdgeProperty(DB db) {
+    if (insertedEdges.size() < 1) {
+      return;
+    }
+    Collections.shuffle(insertedEdges);
+    String key = insertedEdges.get(0);
+    HashMap<String, ByteIterator> values = buildValues(key);
+    String field = (String) values.keySet().toArray()[0];
+    db.removeEdgeProperty(key, field);
+  }
+
+//
+//  /**
+//   * Results are reported in the first three buckets of the histogram under
+//   * the label "VERIFY".
+//   * Bucket 0 means the expected data was returned.
+//   * Bucket 1 means incorrect data was returned.
+//   * Bucket 2 means null data was returned when some data was expected.
+//   */
+//  protected void verifyRow(String key, HashMap<String, ByteIterator> cells) {
+//    Status verifyStatus = Status.OK;
+//    long startTime = System.nanoTime();
+//    if (!cells.isEmpty()) {
+//      for (Map.Entry<String, ByteIterator> entry : cells.entrySet()) {
+//        if (!entry.getValue().toString().equals(buildDeterministicValue(key, entry.getKey()))) {
+//          verifyStatus = Status.UNEXPECTED_STATE;
+//          break;
+//        }
+//      }
+//    } else {
+//      // This assumes that null data is never valid
+//      verifyStatus = Status.ERROR;
+//    }
+//    long endTime = System.nanoTime();
+//    measurements.measure("VERIFY", (int) (endTime - startTime) / 1000);
+//    measurements.reportStatus("VERIFY", verifyStatus);
+//  }
+//
+
+//
+//  public void doTransactionRead(DB db) {
+//    // choose a random key
+//    long keynum = nextKeynum();
+//
+//    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+//
+//    HashSet<String> fields = null;
+//
+//    if (!readallfields) {
+//      // read a random field
+//      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+//
+//      fields = new HashSet<String>();
+//      fields.add(fieldname);
+//    } else if (dataintegrity || readallfieldsbyname) {
+//      // pass the full field list if dataintegrity is on for verification
+//      fields = new HashSet<String>(fieldnames);
+//    }
+//
+//    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
+//    db.read(table, keyname, fields, cells);
+//
+//    if (dataintegrity) {
+//      verifyRow(keyname, cells);
+//    }
+//  }
+//
+//  public void doTransactionReadModifyWrite(DB db) {
+//    // choose a random key
+//    long keynum = nextKeynum();
+//
+//    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+//
+//    HashSet<String> fields = null;
+//
+//    if (!readallfields) {
+//      // read a random field
+//      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+//
+//      fields = new HashSet<String>();
+//      fields.add(fieldname);
+//    }
+//
+//    HashMap<String, ByteIterator> values;
+//
+//    if (writeallfields) {
+//      // new data for all the fields
+//      values = buildValues(keyname);
+//    } else {
+//      // update a random field
+//      values = buildSingleValue(keyname);
+//    }
+//
+//    // do the transaction
+//
+//    HashMap<String, ByteIterator> cells = new HashMap<String, ByteIterator>();
+//
+//
+//    long ist = measurements.getIntendedStartTimeNs();
+//    long st = System.nanoTime();
+//    db.read(table, keyname, fields, cells);
+//
+//    db.update(table, keyname, values);
+//
+//    long en = System.nanoTime();
+//
+//    if (dataintegrity) {
+//      verifyRow(keyname, cells);
+//    }
+//
+//    measurements.measure("READ-MODIFY-WRITE", (int) ((en - st) / 1000));
+//    measurements.measureIntended("READ-MODIFY-WRITE", (int) ((en - ist) / 1000));
+//  }
+//
+//  public void doTransactionScan(DB db) {
+//    // choose a random key
+//    long keynum = nextKeynum();
+//
+//    String startkeyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+//
+//    // choose a random scan length
+//    int len = scanlength.nextValue().intValue();
+//
+//    HashSet<String> fields = null;
+//
+//    if (!readallfields) {
+//      // read a random field
+//      String fieldname = fieldnames.get(fieldchooser.nextValue().intValue());
+//
+//      fields = new HashSet<String>();
+//      fields.add(fieldname);
+//    }
+//
+//    db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
+//  }
+//
+//  public void doTransactionUpdate(DB db) {
+//    // choose a random key
+//    long keynum = nextKeynum();
+//
+//    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+//
+//    HashMap<String, ByteIterator> values;
+//
+//    if (writeallfields) {
+//      // new data for all the fields
+//      values = buildValues(keyname);
+//    } else {
+//      // update a random field
+//      values = buildSingleValue(keyname);
+//    }
+//
+//    db.update(table, keyname, values);
+//  }
+//
+//  public void doTransactionInsert(DB db) {
+//    // choose the next key
+//    long keynum = transactioninsertkeysequence.nextValue();
+//
+//    try {
+//      String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
+//
+//      HashMap<String, ByteIterator> values = buildValues(dbkey);
+//      db.insert(table, dbkey, values);
+//    } finally {
+//      transactioninsertkeysequence.acknowledge(keynum);
+//    }
+//  }
 
   /**
    * Creates a weighted discrete values with database operations for a workload to perform.
@@ -862,36 +994,41 @@ public class CoreWorkload extends Workload {
     if (p == null) {
       throw new IllegalArgumentException("Properties object cannot be null");
     }
+    final double createproportion = Double.parseDouble(
+        p.getProperty(CREATE_PROPORTION_PROPERTY, CREATE_PROPORTION_PROPERTY_DEFAULT));
     final double readproportion = Double.parseDouble(
         p.getProperty(READ_PROPORTION_PROPERTY, READ_PROPORTION_PROPERTY_DEFAULT));
     final double updateproportion = Double.parseDouble(
         p.getProperty(UPDATE_PROPORTION_PROPERTY, UPDATE_PROPORTION_PROPERTY_DEFAULT));
-    final double insertproportion = Double.parseDouble(
-        p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
-    final double scanproportion = Double.parseDouble(
-        p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
-    final double readmodifywriteproportion = Double.parseDouble(p.getProperty(
-        READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
+    final double deleteproportion = Double.parseDouble(
+        p.getProperty(DELETE_PROPORTION_PROPERTY, DELETE_PROPORTION_PROPERTY_DEFAULT));
+
 
     final DiscreteGenerator operationchooser = new DiscreteGenerator();
     if (readproportion > 0) {
-      operationchooser.addValue(readproportion, "READ");
+      operationchooser.addValue(readproportion, "GET_VERTEX_COUNT");
+      operationchooser.addValue(readproportion, "GET_EDGE_COUNT");
+      operationchooser.addValue(readproportion, "GET_EDGE_LABELS");
+      operationchooser.addValue(readproportion, "GET_VERTEX_WITH_PROPERTY");
+      operationchooser.addValue(readproportion, "GET_EDGE_WITH_PROPERTY");
+      operationchooser.addValue(readproportion, "GET_EDGES_WITH_LABEL");
     }
 
     if (updateproportion > 0) {
-      operationchooser.addValue(updateproportion, "UPDATE");
+      operationchooser.addValue(updateproportion, "SET_VERTEX_PROPERTY");
+      operationchooser.addValue(updateproportion, "SET_EDGE_PROPERTY");
     }
 
-    if (insertproportion > 0) {
-      operationchooser.addValue(insertproportion, "INSERT");
+    if (createproportion > 0) {
+      operationchooser.addValue(createproportion, "ADD_VERTEX");
+      operationchooser.addValue(createproportion, "ADD_EDGE");
     }
 
-    if (scanproportion > 0) {
-      operationchooser.addValue(scanproportion, "SCAN");
-    }
-
-    if (readmodifywriteproportion > 0) {
-      operationchooser.addValue(readmodifywriteproportion, "READMODIFYWRITE");
+    if (deleteproportion > 0) {
+      operationchooser.addValue(deleteproportion, "REMOVE_VERTEX");
+      operationchooser.addValue(deleteproportion, "REMOVE_EDGE");
+      operationchooser.addValue(deleteproportion, "REMOVE_VERTEX_PROPERTY");
+      operationchooser.addValue(deleteproportion, "REMOVE_EDGE_PROPERTY");
     }
     return operationchooser;
   }

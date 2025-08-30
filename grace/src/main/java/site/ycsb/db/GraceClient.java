@@ -59,147 +59,260 @@ public class GraceClient extends DB {
   }
 
   @Override
-  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
-    return Status.NOT_IMPLEMENTED;
+  public Status addVertex(String label, String id, Map<String, ByteIterator> properties) {
+    System.out.println("Add Vertex");
+    return Status.OK;
+//    int status = 0;
+//    try {
+//      String vertexProperties = "";
+//      for (Map.Entry<String, ByteIterator> entry : properties.entrySet()) {
+//        vertexProperties += "\""+entry.getKey()+"\":\""+entry.getValue().toString()+"\",";
+//      }
+//      if(vertexProperties.endsWith(",")){
+//        vertexProperties = vertexProperties.substring(0, vertexProperties.length() - 1);
+//      }
+//
+//      String reqBody = " { \"label\": \""+label+"\", \"properties\": {"+vertexProperties+"}}";
+//      String targetString = props.getProperty("HOSTURI") + "/api/addVertex";
+////          System.out.println(targetString);
+//      URI target = new URI(targetString);
+//      HttpRequest request = HttpRequest.newBuilder()
+//          .uri(target)
+//          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+//          .header("Content-Type", "application/json")
+//          .build();
+//      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+//      status += response.statusCode();
+//      if (status == 200 || status == 201) {
+//        return Status.OK;
+//      }
+//      return Status.ERROR;
+//    } catch (Exception e) {
+//      return Status.ERROR;
+//    }
   }
-
   @Override
-  public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-    try {
-      String reqBody = " { \"limit\": \"23\"}";
-      String targetString = props.getProperty("HOSTURI") + "/api/getGraph";
-//      System.out.println(targetString);
-      URI target = new URI(targetString);
-      HttpRequest request = HttpRequest.newBuilder()
-          .uri(target)
-          .GET()
-          .header("Content-Type", "application/json")
-          .build();
-      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
-      if(response.statusCode() == 200 || response.statusCode() == 201){
-        return Status.OK;
-      } else{
-        return Status.ERROR;
-      }
-    } catch (Exception e){
-//      System.out.println(e.getMessage());
-      return Status.ERROR;
-    }
-  }
-
-  // CAUTION. WE need a delete API for the database we are testing. YCSB by default does not execute deletes.
-  // The delete operation is implemented as an update, which is sent to the database.
-  @Override
-  public Status update(String table, String key, Map<String, ByteIterator> values) {
-    if (!(Vertices.isEmpty())) {
-      int size = Vertices.size();
-      int item = new Random().nextInt(size); // In real life, the Random object should be rather more shared than this
-      int i = 0;
-      String deleteVertex = "";
-      for (String vert : Vertices) {
-        if (i == item) {
-          deleteVertex = vert;
-          break;
-        }
-        i++;
-      }
-      if(Objects.equals(deleteVertex, "")){
-        return Status.ERROR;
-      }
-
-      try {
-        String reqBody = " { \"label\": \"ProductItem\", \"properties\": {\"identifier\":\"" + deleteVertex + "\"}}";
-        String targetString = props.getProperty("HOSTURI") + "/api/deleteVertex";
-//        System.out.println(targetString);
-        URI target = new URI(targetString);
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(target)
-            .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-            .header("Content-Type", "application/json")
-            .build();
-        HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
-        if(response.statusCode()==200 || response.statusCode()==201){
-          Vertices.remove(deleteVertex);
-          return Status.OK;
-
-        } else {
-          return Status.ERROR;
-        }
-      } catch (Exception e) {
-//        System.out.println(e.getMessage());
-        return Status.ERROR;
-      }
-    }
+  public Status addEdge(String label, String id, String from, String to, Map<String, ByteIterator> properties) {
+    System.out.println("Add Edge");
     return Status.OK;
   }
 
   @Override
-  public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    int status = 0;
-    try {
-      String edge = reader.readLine();
-      String[] vertices = edge.split(" ");
-      for (String vertex : vertices) {
-//        System.out.println("Insert "+vertex);
-        if (!Vertices.contains(vertex)) {
-          String reqBody = " { \"label\": \"ProductItem\", \"properties\": {\"identifier\":\"" + vertex + "\",\"name\": \"Vertex" + vertex + "\" }}";
-          String targetString= props.getProperty("HOSTURI") + "/api/addVertex";
-//          System.out.println(targetString);
-          URI target = new URI(targetString);
-          HttpRequest request = HttpRequest.newBuilder()
-              .uri(target)
-              .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-              .header("Content-Type", "application/json")
-              .build();
-          HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
-          status+= response.statusCode();
-        }
-      }
-
-      // We receive responses for two requests. The success codes are 200 and 201. The sum of these should be less than 500 always.
-      // If either request is 500, this sum would be greater than 500 at least. so, we do not execute the edge add.
-      if(status<500) {
-        Vertices.add(vertices[0]);
-        Vertices.add(vertices[1]);
-        String reqBody = " { \"sourceLabel\": \"ProductItem\"" +
-                            ",\"sourcePropName\": \"identifier\"" +
-                            ",\"sourcePropValue\":\"" + vertices[0] +"\""+
-                            ",\"targetLabel\": \"ProductItem\"" +
-                            ",\"targetPropName\": \"identifier\"" +
-                            ",\"targetPropValue\":\"" + vertices[1] +"\""+
-                            ",\"relationType\": \"SAME_CATEGORY\"" +
-                            ",\"properties\": {\"identifier\":\"" + vertices[0]+"-"+vertices[1]  + "\",\"relation\": [\"recommendation\"] } }";
-        String targetString= props.getProperty("HOSTURI") + "/api/addEdge";
-//        System.out.println(targetString);
-        URI target = new URI(targetString);
-
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(target)
-            .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-            .header("Content-Type", "application/json")
-            .build();
-
-        HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-//        System.out.println(response.statusCode());
-//        System.out.println(response.body().toString());
-        if(response.statusCode()==500) {
-          return Status.ERROR;
-        }
-        Edges.add( vertices[0]+"-"+vertices[1]);
-      }
-
-      return Status.OK;
-
-    } catch (IOException e) {
-      return Status.ERROR;
-    } catch (InterruptedException | URISyntaxException e) {
-      throw new RuntimeException(e);
-    }
+  public Status getVertexCount() {
+    System.out.println("Get Vertex Count");
+    return Status.OK;
   }
 
   @Override
-  public Status delete(String table, String key) {
-    return Status.NOT_IMPLEMENTED;
+  public Status getEdgeCount() {
+    System.out.println("Get Edge Count");
+    return Status.OK;
   }
+
+  @Override
+  public Status getEdgeLabels() {
+    System.out.println("Get Edge Labels");
+    return Status.OK;
+  }
+
+  @Override
+  public Status getVertexWithProperty(String key, ByteIterator value) {
+    System.out.println("Get Vertex With Property");
+    return Status.OK;
+  }
+
+  @Override
+  public Status getEdgeWithProperty(String key, ByteIterator value) {
+    System.out.println("Get Edge With Property");
+    return Status.OK;
+  }
+
+  @Override
+  public Status getEdgesWithLabel(String label) {
+    System.out.println("Get Edges With Label");
+    return Status.OK;
+  }
+
+  @Override
+  public Status setVertexProperty(String id, String key, ByteIterator value) {
+    System.out.println("Set Vertex Property");
+    return Status.OK;
+  }
+
+  @Override
+  public Status setEdgeProperty(String id, String key, ByteIterator value) {
+    System.out.println("Set Edge Property");
+    return Status.OK;
+  }
+
+  @Override
+  public Status removeVertex(String id) {
+    System.out.println("Remove Vertex");
+    return Status.OK;
+  }
+
+  @Override
+  public Status removeEdge(String id) {
+    System.out.println("Remove Edge");
+    return Status.OK;
+  }
+
+  @Override
+  public Status removeVertexProperty(String id, String key) {
+    System.out.println("Remove Vertex Property");
+    return Status.OK;
+  }
+
+  @Override
+  public Status removeEdgeProperty(String id, String key) {
+    System.out.println("Remove Edge Property");
+    return Status.OK;
+  }
+
+
+//
+//  @Override
+//  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+//    return Status.OK;
+//  }
+//
+//  @Override
+//  public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+//    try {
+//      String reqBody = " { \"limit\": \"23\"}";
+//      String targetString = props.getProperty("HOSTURI") + "/api/getGraph";
+////      System.out.println(targetString);
+//      URI target = new URI(targetString);
+//      HttpRequest request = HttpRequest.newBuilder()
+//          .uri(target)
+//          .GET()
+//          .header("Content-Type", "application/json")
+//          .build();
+//      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+//      if(response.statusCode() == 200 || response.statusCode() == 201){
+//        return Status.OK;
+//      } else{
+//        return Status.ERROR;
+//      }
+//    } catch (Exception e){
+////      System.out.println(e.getMessage());
+//      return Status.ERROR;
+//    }
+//  }
+//
+//  // CAUTION. WE need a delete API for the database we are testing. YCSB by default does not execute deletes.
+//  // The delete operation is implemented as an update, which is sent to the database.
+//  @Override
+//  public Status update(String table, String key, Map<String, ByteIterator> values) {
+//    if (!(Vertices.isEmpty())) {
+//      int size = Vertices.size();
+//      int item = new Random().nextInt(size); // In real life, the Random object should be rather more shared than this
+//      int i = 0;
+//      String deleteVertex = "";
+//      for (String vert : Vertices) {
+//        if (i == item) {
+//          deleteVertex = vert;
+//          break;
+//        }
+//        i++;
+//      }
+//      if(Objects.equals(deleteVertex, "")){
+//        return Status.ERROR;
+//      }
+//
+//      try {
+//        String reqBody = " { \"label\": \"ProductItem\", \"properties\": {\"identifier\":\"" + deleteVertex + "\"}}";
+//        String targetString = props.getProperty("HOSTURI") + "/api/deleteVertex";
+////        System.out.println(targetString);
+//        URI target = new URI(targetString);
+//        HttpRequest request = HttpRequest.newBuilder()
+//            .uri(target)
+//            .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+//            .header("Content-Type", "application/json")
+//            .build();
+//        HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+//        if(response.statusCode()==200 || response.statusCode()==201){
+//          Vertices.remove(deleteVertex);
+//          return Status.OK;
+//
+//        } else {
+//          return Status.ERROR;
+//        }
+//      } catch (Exception e) {
+////        System.out.println(e.getMessage());
+//        return Status.ERROR;
+//      }
+//    }
+//    return Status.OK;
+//  }
+//
+//  @Override
+//  public Status insert(String table, String key, Map<String, ByteIterator> values) {
+//    int status = 0;
+//    try {
+//      String edge = reader.readLine();
+//      String[] vertices = edge.split(" ");
+//      for (String vertex : vertices) {
+////        System.out.println("Insert "+vertex);
+//        if (!Vertices.contains(vertex)) {
+//          String reqBody = " { \"label\": \"ProductItem\", \"properties\": {\"identifier\":\"" + vertex + "\",\"name\": \"Vertex" + vertex + "\" }}";
+//          String targetString= props.getProperty("HOSTURI") + "/api/addVertex";
+////          System.out.println(targetString);
+//          URI target = new URI(targetString);
+//          HttpRequest request = HttpRequest.newBuilder()
+//              .uri(target)
+//              .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+//              .header("Content-Type", "application/json")
+//              .build();
+//          HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+//          status+= response.statusCode();
+//        }
+//      }
+//
+//      // We receive responses for two requests. The success codes are 200 and 201. The sum of these should be less than 500 always.
+//      // If either request is 500, this sum would be greater than 500 at least. so, we do not execute the edge add.
+//      if(status<500) {
+//        Vertices.add(vertices[0]);
+//        Vertices.add(vertices[1]);
+//        String reqBody = " { \"sourceLabel\": \"ProductItem\"" +
+//                            ",\"sourcePropName\": \"identifier\"" +
+//                            ",\"sourcePropValue\":\"" + vertices[0] +"\""+
+//                            ",\"targetLabel\": \"ProductItem\"" +
+//                            ",\"targetPropName\": \"identifier\"" +
+//                            ",\"targetPropValue\":\"" + vertices[1] +"\""+
+//                            ",\"relationType\": \"SAME_CATEGORY\"" +
+//                            ",\"properties\": {\"identifier\":\"" + vertices[0]+"-"+vertices[1]  + "\",\"relation\": [\"recommendation\"] } }";
+//        String targetString= props.getProperty("HOSTURI") + "/api/addEdge";
+////        System.out.println(targetString);
+//        URI target = new URI(targetString);
+//
+//        HttpRequest request = HttpRequest.newBuilder()
+//            .uri(target)
+//            .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+//            .header("Content-Type", "application/json")
+//            .build();
+//
+//        HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+////        System.out.println(response.statusCode());
+////        System.out.println(response.body().toString());
+//        if(response.statusCode()==500) {
+//          return Status.ERROR;
+//        }
+//        Edges.add( vertices[0]+"-"+vertices[1]);
+//      }
+//
+//      return Status.OK;
+//
+//    } catch (IOException e) {
+//      return Status.ERROR;
+//    } catch (InterruptedException | URISyntaxException e) {
+//      throw new RuntimeException(e);
+//    }
+//  }
+//
+//  @Override
+//  public Status delete(String table, String key) {
+//    return Status.OK;
+//  }
 
 }

@@ -32,10 +32,10 @@ workload=site.ycsb.workloads.CoreWorkload
 
 readallfields=true
 
-readproportion=0
-updateproportion=.1
-scanproportion=.2
-insertproportion=.7
+readproportion=1
+updateproportion=1
+createproportion=1
+deleteproportion=1
 
 
 requestdistribution=latest
