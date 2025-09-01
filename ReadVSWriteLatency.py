@@ -1,72 +1,70 @@
 import os
-import re
+import pandas as pd
 import matplotlib.pyplot as plt
-import sys
-import numpy as np
 
-if len(sys.argv) != 3:
-    print(f"Usage: python {sys.argv[0]} <logsDirectory> <threadCountToAnalyze>")
-    sys.exit(1)
+root_dir = "./BenchmarkResults/LatencyComparision"  # adjust as needed
 
-top_directory = sys.argv[1]
-selected_filename = sys.argv[2]
+data = []
 
+dict_operations = {
+    "GET_VERTEX_COUNT": "R1",
+    "GET_EDGE_COUNT": "R2",
+    "GET_EDGE_LABELS": "R3",
+    "GET_VERTEX_WITH_PROPERTY": "R4",
+    "GET_EDGE_WITH_PROPERTY": "R5",
+    "GET_EDGES_WITH_LABEL": "R6",
+    "ADD_VERTEX": "W1",
+    "ADD_EDGE": "W2",
+    "REMOVE_VERTEX": "W3",
+    "REMOVE_EDGE": "W4",
+    "SET_VERTEX_PROPERTY": "W5",
+    "SET_EDGE_PROPERTY": "W6",
+    "REMOVE_VERTEX_PROPERTY": "W7",
+    "REMOVE_EDGE_PROPERTY": "W8"
+}
 
-# # Top-level directory containing subdirectories (one per DB)
-# top_directory = "./results"  # change this to your directory
-# # Filename to analyze inside each DB directory
-# selected_filename = "1"  # change this to the filename you want to analyze
-
-latencies = {}
-for db_name in os.listdir(top_directory):
-    db_path = os.path.join(top_directory, db_name)
+for db in os.listdir(root_dir):
+    db_path = os.path.join(root_dir, db)
     if not os.path.isdir(db_path):
         continue
-
-    filepath = os.path.join(db_path, selected_filename)
-    if not os.path.isfile(filepath):
+    results_file = os.path.join(db_path, "results.txt")  # adjust if different
+    if not os.path.exists(results_file):
         continue
+    operations=["GET_VERTEX_COUNT","GET_EDGE_COUNT", "GET_EDGE_LABELS",
+    "GET_VERTEX_WITH_PROPERTY", "GET_EDGE_WITH_PROPERTY", "GET_EDGES_WITH_LABEL", "ADD_VERTEX","ADD_EDGE","REMOVE_VERTEX", "REMOVE_EDGE", "SET_VERTEX_PROPERTY", "SET_EDGE_PROPERTY",
+    "REMOVE_VERTEX_PROPERTY", "REMOVE_EDGE_PROPERTY" ]
+    with open(results_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line or "," not in line:
+                continue
+            parts = line.split(",")
+            if len(parts) != 3:
+                continue
+#             print(parts)
+            operation, metric, value = parts
+            operation = operation.strip("[]")
+            metric = metric.strip()
+            value = value.strip()
+            if metric == "AverageLatency(us)" and operation in operations:
+                data.append({
+                    "DB": db,
+                    "Operation": dict_operations[operation],
+                    "Latency": float(value)
+                })
 
-    with open(filepath, "r") as f:
-        content = f.read()
+# Convert to DataFrame
+plot_df = pd.DataFrame(data)
 
-    read_avgs, write_avgs = [], []
+# Pivot to have operations as index and DBs as columns
+pivot_df = plot_df.pivot(index="Operation", columns="DB", values="Latency").fillna(0)
 
-    # Reads = READ + SCAN
-    for op in ["READ", "SCAN"]:
-        avg_match = re.search(rf"\[{op}\], AverageLatency\(us\), ([0-9.]+)", content)
-        if avg_match:
-            read_avgs.append(float(avg_match.group(1)) / 1000.0)
-
-    # Writes = INSERT + UPDATE (updates = deletes)
-    for op in ["INSERT", "UPDATE"]:
-        avg_match = re.search(rf"\[{op}\], AverageLatency\(us\), ([0-9.]+)", content)
-        if avg_match:
-            write_avgs.append(float(avg_match.group(1)) / 1000.0)
-
-    if read_avgs or write_avgs:
-        latencies[db_name] = {
-            "read": sum(read_avgs) / len(read_avgs) if read_avgs else 0,
-            "write": sum(write_avgs) / len(write_avgs) if write_avgs else 0,
-        }
-
-# Prepare data for plotting
-dbs = list(latencies.keys())
-n_dbs = len(dbs)
-x = np.arange(2)  # 0 = Read, 1 = Write
-bar_width = 0.8 / n_dbs  # split bar space among DBs
-
-plt.figure(figsize=(10, 6))
-
-for i, db in enumerate(dbs):
-    read_val = latencies[db]["read"]
-    write_val = latencies[db]["write"]
-    plt.bar(x + i * bar_width, [read_val, write_val],
-            width=bar_width, label=db)
-
-plt.xticks(x + (n_dbs - 1) * bar_width / 2, ["Read", "Write"])
-plt.ylabel("Latency (ms)")
-plt.title(f"Average Read vs Write Latency across Databases ({selected_filename})")
-plt.legend()
-plt.grid(axis="y")
-plt.show()
+# Plot
+pivot_df.plot(kind="bar", figsize=(5, 3))
+plt.ylabel("Latency (µs)")
+plt.yscale("log")
+plt.title("")
+plt.xticks(rotation=0, fontsize=8)
+plt.legend(title="Database")
+plt.tight_layout()
+plt.savefig("GraceVsOthersLatency", dpi=500)

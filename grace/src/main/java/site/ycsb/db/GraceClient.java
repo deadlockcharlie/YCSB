@@ -22,11 +22,9 @@ import java.util.*;
 public class GraceClient extends DB {
 
   private static HttpClient httpClient;
-  private static BufferedReader reader;
-  private static FileReader fileReader;
   private static Properties props = new Properties();
   private final Logger log = LoggerFactory.getLogger(getClass());
-
+  private DBDriver dbDriver;
   private Set<String> Vertices = new HashSet<>();
   private Set<String> Edges = new HashSet<>();
 
@@ -39,6 +37,26 @@ public class GraceClient extends DB {
     System.out.println("Starting GRACE client");
     props = getProperties();
     System.out.println(props);
+    if (props.getProperty("HOSTURI") == null) {
+      System.out.println("GRACE HOSTURI must be provided");
+      throw new DBException("GRACE HOSTURI must be provided");
+    }
+    System.out.println("GRACE HOSTURI: " + props.getProperty("HOSTURI"));
+
+    if(props.getProperty("DBTYPE")==null){
+      System.out.println("DBTYPE must be provided");
+      throw new DBException("DBTYPE must be provided");
+    }
+    System.out.println("DBTYPE: "+props.getProperty("DBTYPE"));
+
+    if(props.getProperty("DBURI")==null){
+      System.out.println("DBURI must be provided");
+      throw new DBException("DBURI must be provided");
+    }
+    System.out.println("DBURI: "+props.getProperty("DBURI"));
+
+    dbDriver = new DBDriver(props.getProperty("DBTYPE"), props.getProperty("DBURI"));
+
 
     httpClient = HttpClient.newBuilder()
         .version(HttpClient.Version.HTTP_1_1)
@@ -46,127 +64,256 @@ public class GraceClient extends DB {
         .connectTimeout(Duration.ofSeconds(5))
         .build();
 
-    try{
-      String datafilepath = props.getProperty("DATAFILE");
-      if(datafilepath == null){
-        throw new RuntimeException("Missing or incorrect datafile path");
+  }
+
+  @Override
+  public Status addVertex(String label, String id, Map<String, ByteIterator> properties) {
+//    System.out.println("Add Vertex");
+//    return Status.OK;
+    int status = 0;
+    try {
+      String vertexProperties = "";
+      for (Map.Entry<String, ByteIterator> entry : properties.entrySet()) {
+        vertexProperties += "\""+entry.getKey()+"\":\""+entry.getValue().toString()+"\",";
       }
-      reader = new BufferedReader(new FileReader(datafilepath));
-    }catch(Exception e){
-      System.out.println(e.getMessage());
+
+      String reqBody = " { \"label\": [\"YCSBVertex\"], \"properties\": {"+vertexProperties+"\"id\":\""+id+"\"}}";
+      String targetString = props.getProperty("HOSTURI") + "/api/addVertex";
+//      System.out.println(targetString);
+//      System.out.println(reqBody);
+      URI target = new URI(targetString);
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(target)
+          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+          .header("Content-Type", "application/json")
+          .build();
+      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+//      System.out.println(response.statusCode());
+      status += response.statusCode();
+      return Status.OK;
+    } catch (Exception e) {
+      return Status.ERROR;
+    }
+  }
+  @Override
+  public Status addEdge(String label, String id, String from, String to, Map<String, ByteIterator> properties) {
+    int status = 0;
+    try {
+      String edgeProperties = "";
+      for (Map.Entry<String, ByteIterator> entry : properties.entrySet()) {
+        edgeProperties += "\""+entry.getKey()+"\":\""+entry.getValue().toString()+"\",";
+      }
+
+      String reqBody = " { \"sourceLabel\": [\"YCSBVertex\"] "+
+                            ",\"sourcePropName\": \"id\"" +
+                            ",\"sourcePropValue\":\"" + from +"\""+
+                            ",\"targetLabel\": [\"YCSBVertex\"]" +
+                            ",\"targetPropName\": \"id\"" +
+                            ",\"targetPropValue\":\"" + to +"\""+
+                            ",\"relationType\": [\"YCSBEdge\"]" +
+                            ",\"properties\": {"+edgeProperties+"\"id\":\""+id+"\"}}";
+      String targetString = props.getProperty("HOSTURI") + "/api/addEdge";
+//      System.out.println(targetString);
+//      System.out.println(reqBody);
+      URI target = new URI(targetString);
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(target)
+          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+          .header("Content-Type", "application/json")
+          .build();
+      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+//      System.out.println(response.statusCode());
+      status += response.statusCode();
+      return Status.OK;
+    } catch (Exception e) {
+      return Status.ERROR;
     }
 
   }
 
   @Override
-  public Status addVertex(String label, String id, Map<String, ByteIterator> properties) {
-    System.out.println("Add Vertex");
-    return Status.OK;
-//    int status = 0;
-//    try {
-//      String vertexProperties = "";
-//      for (Map.Entry<String, ByteIterator> entry : properties.entrySet()) {
-//        vertexProperties += "\""+entry.getKey()+"\":\""+entry.getValue().toString()+"\",";
-//      }
-//      if(vertexProperties.endsWith(",")){
-//        vertexProperties = vertexProperties.substring(0, vertexProperties.length() - 1);
-//      }
-//
-//      String reqBody = " { \"label\": \""+label+"\", \"properties\": {"+vertexProperties+"}}";
-//      String targetString = props.getProperty("HOSTURI") + "/api/addVertex";
-////          System.out.println(targetString);
-//      URI target = new URI(targetString);
-//      HttpRequest request = HttpRequest.newBuilder()
-//          .uri(target)
-//          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-//          .header("Content-Type", "application/json")
-//          .build();
-//      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
-//      status += response.statusCode();
-//      if (status == 200 || status == 201) {
-//        return Status.OK;
-//      }
-//      return Status.ERROR;
-//    } catch (Exception e) {
-//      return Status.ERROR;
-//    }
-  }
-  @Override
-  public Status addEdge(String label, String id, String from, String to, Map<String, ByteIterator> properties) {
-    System.out.println("Add Edge");
-    return Status.OK;
-  }
-
-  @Override
   public Status getVertexCount() {
-    System.out.println("Get Vertex Count");
+//    System.out.println("Get Vertex Count");
+    boolean result = dbDriver.executeQuery("MATCH (n) RETURN count(n)");
+    if(!result){
+      return Status.ERROR;
+    }
     return Status.OK;
   }
 
   @Override
   public Status getEdgeCount() {
-    System.out.println("Get Edge Count");
+//    System.out.println("Get Edge Count");
+    boolean result = dbDriver.executeQuery("MATCH ()-[r]->() RETURN count(r)");
+    if(!result){
+      return Status.ERROR;
+    }
     return Status.OK;
   }
 
   @Override
   public Status getEdgeLabels() {
-    System.out.println("Get Edge Labels");
+  boolean result = dbDriver.executeQuery("MATCH ()-[r]->() RETURN distinct type(r)");
+    if(!result){
+      return Status.ERROR;
+    }
     return Status.OK;
   }
 
   @Override
   public Status getVertexWithProperty(String key, ByteIterator value) {
-    System.out.println("Get Vertex With Property");
+    boolean result = dbDriver.executeQuery("MATCH (n {"+key+": '"+value.toString()+"'}) RETURN n");
+    if(!result) {
+      return Status.ERROR;
+    }
     return Status.OK;
   }
 
   @Override
   public Status getEdgeWithProperty(String key, ByteIterator value) {
-    System.out.println("Get Edge With Property");
+    boolean result = dbDriver.executeQuery("MATCH ()-[r {"+key+": '"+value.toString()+"'}]->() RETURN r");
+    if(!result) {
+      return Status.ERROR;
+    }
     return Status.OK;
   }
 
   @Override
   public Status getEdgesWithLabel(String label) {
-    System.out.println("Get Edges With Label");
+    boolean result = dbDriver.executeQuery("MATCH ()-[r:"+label+"]->() RETURN r");
+    if(!result) {
+      return Status.ERROR;
+    }
     return Status.OK;
   }
 
   @Override
   public Status setVertexProperty(String id, String key, ByteIterator value) {
-    System.out.println("Set Vertex Property");
-    return Status.OK;
+    try{
+      String reqBody = " { \"id\": \""+id+"\", \"key\": \""+key+"\", \"value\": \""+value.toString()+"\"}";
+      String targetString = props.getProperty("HOSTURI") + "/api/setVertexProperty";
+//      System.out.println(targetString);
+//      System.out.println(reqBody);
+      URI target = new URI(targetString);
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(target)
+          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+          .header("Content-Type", "application/json")
+          .build();
+      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+      return Status.OK;
+    } catch (Exception e){
+      return Status.ERROR;
+    }
   }
 
   @Override
   public Status setEdgeProperty(String id, String key, ByteIterator value) {
-    System.out.println("Set Edge Property");
-    return Status.OK;
+    try {
+      String reqBody = " { \"id\": \"" + id + "\", \"key\": \"" + key + "\", \"value\": \"" + value.toString() + "\"}";
+      String targetString = props.getProperty("HOSTURI") + "/api/setEdgeProperty";
+//      System.out.println(targetString);
+//      System.out.println(reqBody);
+      URI target = new URI(targetString);
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(target)
+          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+          .header("Content-Type", "application/json")
+          .build();
+      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+        return Status.OK;
+    } catch (Exception e) {
+      return Status.ERROR;
+    }
   }
 
   @Override
   public Status removeVertex(String id) {
-    System.out.println("Remove Vertex");
-    return Status.OK;
+    int status = 0;
+    try {
+
+      String reqBody = "{\"id\":\""+id+"\"}";
+      String targetString = props.getProperty("HOSTURI") + "/api/deleteVertex";
+//      System.out.println(targetString);
+//      System.out.println(reqBody);
+      URI target = new URI(targetString);
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(target)
+          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+          .header("Content-Type", "application/json")
+          .build();
+      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+//      System.out.println(response.statusCode());
+      status += response.statusCode();
+        return Status.OK;
+
+    } catch (Exception e) {
+      return Status.ERROR;
+    }
   }
 
   @Override
   public Status removeEdge(String id) {
-    System.out.println("Remove Edge");
-    return Status.OK;
+    int status = 0;
+    try {
+      String reqBody = "{\"id\":\""+id+"\"}";
+      String targetString = props.getProperty("HOSTURI") + "/api/deleteEdge";
+//      System.out.println(targetString);
+//      System.out.println(reqBody);
+      URI target = new URI(targetString);
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(target)
+          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+          .header("Content-Type", "application/json")
+          .build();
+      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+//      System.out.println(response);
+      status += response.statusCode();
+        return Status.OK;
+    } catch (Exception e) {
+      return Status.ERROR;
+    }
   }
 
   @Override
   public Status removeVertexProperty(String id, String key) {
-    System.out.println("Remove Vertex Property");
-    return Status.OK;
+    try{
+      String reqBody = " { \"id\": \""+id+"\", \"key\": \""+key+"\"}";
+      String targetString = props.getProperty("HOSTURI") + "/api/removeVertexProperty";
+//      System.out.println(targetString);
+//      System.out.println(reqBody);
+      URI target = new URI(targetString);
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(target)
+          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+          .header("Content-Type", "application/json")
+          .build();
+      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+     return Status.OK;
+  }catch (Exception e){
+      return Status.ERROR;
+    }
   }
 
   @Override
   public Status removeEdgeProperty(String id, String key) {
-    System.out.println("Remove Edge Property");
-    return Status.OK;
+    try{
+      String reqBody = " { \"id\": \""+id+"\", \"key\": \""+key+"\"}";
+      String targetString = props.getProperty("HOSTURI") + "/api/removeEdgeProperty";
+//      System.out.println(targetString);
+//      System.out.println(reqBody);
+      URI target = new URI(targetString);
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(target)
+          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
+          .header("Content-Type", "application/json")
+          .build();
+      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+//      System.out.println(response);
+      return Status.OK;
+    }catch (Exception e){
+      return Status.ERROR;
+    }
   }
 
 

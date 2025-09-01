@@ -10,8 +10,8 @@
     <relativePath>../binding-parent</relativePath>
   </parent>
 
-  <artifactId>grace-binding</artifactId>
-  <name>Grace Client</name>
+  <artifactId>graphdb-binding</artifactId>
+  <name>GraphDB Client</name>
   <build>
     <plugins>
       <plugin>
@@ -27,7 +27,8 @@
   <packaging>jar</packaging>
 
 
-  <dependencies>
+
+<dependencies>
     <dependency>
       <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
@@ -59,31 +60,10 @@
       <version>1.0.0-rc2</version>
     </dependency>
     <dependency>
-    <groupId>org.apache.tinkerpop</groupId>
-    <artifactId>gremlin-driver</artifactId>
-    <version>3.7.0</version>
+      <groupId>org.apache.tinkerpop</groupId>
+      <artifactId>gremlin-driver</artifactId>
+      <version>3.7.0</version>
     </dependency>
   </dependencies>
-
-<!--  -->
-<!--  <build>-->
-<!--    <plugins>-->
-<!--      <plugin>-->
-<!--        <groupId>org.apache.maven.plugins</groupId>-->
-<!--        <artifactId>maven-compiler-plugin</artifactId>-->
-<!--        <configuration>-->
-<!--          <source>11</source>-->
-<!--          <target>11</target>-->
-<!--        </configuration>-->
-<!--      </plugin>-->
-<!--    </plugins>-->
-<!--  </build>-->
-<!--  -->
-
-<!--  <properties>-->
-<!--    <maven.compiler.source>22</maven.compiler.source>-->
-<!--    <maven.compiler.target>22</maven.compiler.target>-->
-<!--    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>-->
-<!--  </properties>-->
 
 </project>
