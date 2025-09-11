@@ -6,13 +6,10 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import site.ycsb.db.DatabaseDrivers.DatabaseClient;
+import site.ycsb.db.DatabaseDrivers.DatabaseClientFactory;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -24,7 +21,7 @@ public class GraceClient extends DB {
   private static HttpClient httpClient;
   private static Properties props = new Properties();
   private final Logger log = LoggerFactory.getLogger(getClass());
-  private DBDriver dbDriver;
+  private DatabaseClient dbDriver;
   private Set<String> Vertices = new HashSet<>();
   private Set<String> Edges = new HashSet<>();
 
@@ -55,7 +52,8 @@ public class GraceClient extends DB {
     }
     System.out.println("DBURI: "+props.getProperty("DBURI"));
 
-    dbDriver = new DBDriver(props.getProperty("DBTYPE"), props.getProperty("DBURI"));
+    dbDriver = DatabaseClientFactory.getDatabaseClient(props.getProperty("DBTYPE"));
+    dbDriver.connect(props.getProperty("DBTYPE"), props.getProperty("DBURI"));
 
 
     httpClient = HttpClient.newBuilder()
@@ -134,7 +132,8 @@ public class GraceClient extends DB {
   @Override
   public Status getVertexCount() {
 //    System.out.println("Get Vertex Count");
-    boolean result = dbDriver.executeQuery("MATCH (n) RETURN count(n)");
+    boolean result = dbDriver.getVertexCount();
+//    boolean result = dbDriver.executeQuery("MATCH (n) RETURN count(n)");
     if(!result){
       return Status.ERROR;
     }
@@ -144,7 +143,8 @@ public class GraceClient extends DB {
   @Override
   public Status getEdgeCount() {
 //    System.out.println("Get Edge Count");
-    boolean result = dbDriver.executeQuery("MATCH ()-[r]->() RETURN count(r)");
+    boolean result = dbDriver.getEdgeCount();
+//    boolean result = dbDriver.executeQuery("MATCH ()-[r]->() RETURN count(r)");
     if(!result){
       return Status.ERROR;
     }
@@ -153,7 +153,7 @@ public class GraceClient extends DB {
 
   @Override
   public Status getEdgeLabels() {
-  boolean result = dbDriver.executeQuery("MATCH ()-[r]->() RETURN distinct type(r)");
+  boolean result = dbDriver.getEdgeLabels();
     if(!result){
       return Status.ERROR;
     }
@@ -162,7 +162,9 @@ public class GraceClient extends DB {
 
   @Override
   public Status getVertexWithProperty(String key, ByteIterator value) {
-    boolean result = dbDriver.executeQuery("MATCH (n {"+key+": '"+value.toString()+"'}) RETURN n");
+    boolean result = dbDriver.getVertexWithProperty(key, value.toString());
+
+    //    boolean result = dbDriver.executeQuery("MATCH (n {"+key+": '"+value.toString()+"'}) RETURN n");
     if(!result) {
       return Status.ERROR;
     }
@@ -171,7 +173,8 @@ public class GraceClient extends DB {
 
   @Override
   public Status getEdgeWithProperty(String key, ByteIterator value) {
-    boolean result = dbDriver.executeQuery("MATCH ()-[r {"+key+": '"+value.toString()+"'}]->() RETURN r");
+    boolean result = dbDriver.getEdgeWithProperty(key, value.toString());
+//    boolean result = dbDriver.executeQuery("MATCH ()-[r {"+key+": '"+value.toString()+"'}]->() RETURN r");
     if(!result) {
       return Status.ERROR;
     }
@@ -180,7 +183,8 @@ public class GraceClient extends DB {
 
   @Override
   public Status getEdgesWithLabel(String label) {
-    boolean result = dbDriver.executeQuery("MATCH ()-[r:"+label+"]->() RETURN r");
+    boolean result = dbDriver.getEdgesWithLabel(label);
+//    boolean result = dbDriver.executeQuery("MATCH ()-[r:"+label+"]->() RETURN r");
     if(!result) {
       return Status.ERROR;
     }

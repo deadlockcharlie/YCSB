@@ -662,21 +662,6 @@ public class CoreWorkload extends Workload {
         doTransactionGetVertexCount(db);
     }
 
-//    case "READ":
-//      doTransactionRead(db);
-//      break;
-//    case "UPDATE":
-//      doTransactionUpdate(db);
-//      break;
-//    case "INSERT":
-//      doTransactionInsert(db);
-//      break;
-//    case "SCAN":
-//      doTransactionScan(db);
-//      break;
-//    default:
-//      doTransactionReadModifyWrite(db);
-//    }
 
     return true;
   }
@@ -702,27 +687,26 @@ public class CoreWorkload extends Workload {
     long keynum = nextKeynum();
 
     String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-
+    if(insertedVertices.contains(keyname)){
+      return;
+    }
     HashMap<String, ByteIterator> values = buildValues(keyname);
-    insertedVertices.add(keyname);
     db.addVertex(table, keyname, values);
+    insertedVertices.add(keyname);
 
   }
 
   public void doTransactionAddEdge(DB db) {
     // choose a random key
-    if (insertedVertices.size() < 2) {
-      return;
-    }
-    else{
+    if (insertedVertices.size() >= 2) {
       Collections.shuffle(insertedVertices);
       long keynum = nextKeynum();
       String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
       String source = insertedVertices.get(0);
       String target = insertedVertices.get(1);
       HashMap<String, ByteIterator> values = buildValues(source + "-" + target);
-      insertedEdges.add(keyname);
       db.addEdge(table, keyname, source, target, values);
+      insertedEdges.add(keyname);
     }
   }
 
@@ -736,11 +720,11 @@ public class CoreWorkload extends Workload {
     db.getEdgeLabels();
   }
   public void doTransactionGetVertexWithProperty(DB db) {
-//    if(insertedVertices.isEmpty()) {
-//      return;
-//    }
-//   Collections.shuffle(insertedVertices);
-   String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
+    if(insertedVertices.isEmpty()) {
+      return;
+    }
+   Collections.shuffle(insertedVertices);
+   String key = insertedVertices.get(0);
    HashMap<String, ByteIterator> values = buildValues(key);
    //pick one string from values
     String fieldkey = (String) values.keySet().toArray()[0];
@@ -749,11 +733,11 @@ public class CoreWorkload extends Workload {
    db.getVertexWithProperty(fieldkey, fieldValue);
   }
   public void doTransactionGetEdgeWithProperty(DB db) {
-//    if(insertedEdges.isEmpty()) {
-//      return;
-//    }
-//    Collections.shuffle(insertedEdges);
-    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
+    if(insertedEdges.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedEdges);
+    String key = insertedEdges.get(0);
     HashMap<String, ByteIterator> values = buildValues(key);
     //pick one string from values
     String fieldkey = (String) values.keySet().toArray()[0];
@@ -765,58 +749,66 @@ public class CoreWorkload extends Workload {
   }
 
   public void doTransactionSetVertexProperty(DB db) {
-//    if(insertedVertices.isEmpty()) {
-//      return;
-//    }
-//    Collections.shuffle(insertedVertices);
-    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
+    if(insertedVertices.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedVertices);
+    String key = insertedVertices.get(0);
+//    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
     HashMap<String, ByteIterator> values = buildValues(key);
     String field = (String) values.keySet().toArray()[0];
     db.setVertexProperty(key, field, values.get(field));
   }
   public void doTransactionSetEdgeProperty(DB db) {
-//    if(insertedEdges.isEmpty()) {
-//      return;
-//    }
-//    Collections.shuffle(insertedEdges);
+    if(insertedEdges.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedEdges);
     String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
     HashMap<String, ByteIterator> values = buildValues(key);
     String field = (String) values.keySet().toArray()[0];
     db.setEdgeProperty(key, field, values.get(field));
   }
   public void doTransactionRemoveVertex(DB db) {
-//    if (insertedVertices.isEmpty()) {
-//      return;
-//    }
-//    Collections.shuffle(insertedVertices);
-    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
+    if (insertedVertices.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedVertices);
+    String key = insertedVertices.get(0);
     db.removeVertex(key);
+    insertedVertices.removeIf(k -> k.equals(key));
+
   }
   public void doTransactionRemoveEdge(DB db) {
-//    if (insertedEdges.isEmpty()) {
-//      return;
-//    }
-//    Collections.shuffle(insertedEdges);
-    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
+    if (insertedEdges.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedEdges);
+    String key = insertedEdges.get(0);
+
+//    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
     db.removeEdge(key);
+    insertedEdges.removeIf(k -> k.equals(key));
   }
 
   public void doTransactionRemoveVertexProperty(DB db) {
-//    if (insertedVertices.isEmpty()) {
-//      return;
-//    }
-//    Collections.shuffle(insertedVertices);
-    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
+    if (insertedVertices.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedVertices);
+    String key = insertedVertices.get(0);
+//    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
     HashMap<String, ByteIterator> values = buildValues(key);
     String field = (String) values.keySet().toArray()[0];
     db.removeVertexProperty(key, field);
   }
   public void doTransactionRemoveEdgeProperty(DB db) {
-//    if (insertedEdges.isEmpty()) {
-//      return;
-//    }
-//    Collections.shuffle(insertedEdges);
-    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
+    if (insertedEdges.isEmpty()) {
+      return;
+    }
+    Collections.shuffle(insertedEdges);
+    String key = insertedEdges.get(0);
+//    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
     HashMap<String, ByteIterator> values = buildValues(key);
     String field = (String) values.keySet().toArray()[0];
     db.removeEdgeProperty(key, field);

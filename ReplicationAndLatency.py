@@ -84,12 +84,12 @@ df = pd.concat([dfread, dfwrite])
 df = df.sort_values(by="replicas")
 
 # Style mapping
-colors = {"Neo4J": "tab:blue", "GRACE": "tab:orange", "MemGraph": "tab:green"}
+colors = {"Neo4J": "tab:blue", "GRACE": "tab:green", "MemGraph": "tab:orange"}
 markers = {"Neo4J": "o", "GRACE": "s", "MemGraph": "^"}
 linestyles = {"Reads": "dotted", "Writes": "solid"}
 
 # Plot
-plt.figure(figsize=(8, 6))
+plt.figure(figsize=(6, 4))
 for db in df['db'].unique():
     db_data = df[df['db'] == db]
     for op in db_data['operation'].unique():
@@ -105,8 +105,9 @@ for db in df['db'].unique():
 
 plt.xlabel("Replica Count")
 plt.ylabel("Latency (µs)")
-plt.title("Read and Write Latency vs Replica Count")
-plt.legend()
+plt.yscale("log")
+plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.2),
+          ncol=3, fancybox=True)
 plt.grid(True)
 plt.tight_layout()
-plt.show()
+plt.savefig("ReplicationAndLatency.png", dpi=500)

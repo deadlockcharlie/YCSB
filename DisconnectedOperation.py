@@ -7,8 +7,7 @@ from datetime import datetime
 def parse_ycsb_log(filename):
     pattern = re.compile(
         r"(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}:\d{3}).*?; "
-        r"(?P<throughput>[\d.]+) current ops/sec;.*?"
-        r"\[INSERT:.*?Avg=(?P<insert_avg>[\d.]+)",
+        r"(?P<throughput>[\d.]+) current ops/sec;.*?",
         re.DOTALL
     )
 
@@ -18,10 +17,11 @@ def parse_ycsb_log(filename):
             match = pattern.search(line)
             if match:
                 ts = datetime.strptime(match.group("timestamp"), "%Y-%m-%d %H:%M:%S:%f")
+                print(ts)
                 records.append({
                     "timestamp": ts,
                     "throughput": float(match.group("throughput")),
-                    "insert_avg_latency": float(match.group("insert_avg"))
+#                     "insert_avg_latency": float(match.group("insert_avg"))
                 })
 
     if not records:
@@ -44,13 +44,13 @@ def plot_ycsb(df):
     ax1.tick_params(axis="y", labelcolor="tab:blue")
     ax1.set_ylim(0, None)
     # Latency
-    ax2 = ax1.twinx()
-    ax2.set_ylabel("Latency (µs)", color="tab:red")
-    ax2.plot(df["time_sec"], df["insert_avg_latency"], marker="s", linestyle="--", color="tab:red", label="Avg Insert Latency")
-    ax2.tick_params(axis="y", labelcolor="tab:red")
-    ax2.set_ylim(0, None)
-    fig.tight_layout()
-    plt.title("YCSB Benchmark: Throughput & Latency over Time")
+#     ax2 = ax1.twinx()
+#     ax2.set_ylabel("Latency (µs)", color="tab:red")
+#     ax2.plot(df["time_sec"], df["insert_avg_latency"], marker="s", linestyle="--", color="tab:red", label="Avg Insert Latency")
+#     ax2.tick_params(axis="y", labelcolor="tab:red")
+#     ax2.set_ylim(0, None)
+#     fig.tight_layout()
+#     plt.title("YCSB Benchmark: Throughput & Latency over Time")
     plt.show()
 
 if __name__ == "__main__":

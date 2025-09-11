@@ -161,7 +161,7 @@ LICENSE file.
     <module>distribution</module>
     <module>grace</module>
     <module>graphdb</module>
-    <!-- all the datastore bindings, lex sorted please -->
+      <!-- all the datastore bindings, lex sorted please -->
 <!--    <module>accumulo1.9</module>-->
 <!--    <module>aerospike</module>-->
 <!--    <module>arangodb</module>-->

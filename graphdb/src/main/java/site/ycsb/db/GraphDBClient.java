@@ -6,6 +6,8 @@ import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
+import site.ycsb.db.DatabaseDrivers.DatabaseClient;
+import site.ycsb.db.DatabaseDrivers.DatabaseClientFactory;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,7 +21,7 @@ public class GraphDBClient extends DB {
   private static HttpClient httpClient;
   private static Properties props = new Properties();
   private final Logger log = LoggerFactory.getLogger(getClass());
-  private DBDriver dbDriver;
+  private DatabaseClient dbDriver;
   @Override
   public void init() throws DBException {
     System.out.println("Starting GraphDB client");
@@ -43,7 +45,9 @@ public class GraphDBClient extends DB {
     }
     System.out.println("DBURI: "+props.getProperty("DBURI"));
 
-    dbDriver = new DBDriver(props.getProperty("DBTYPE"), props.getProperty("DBURI"));
+    dbDriver = DatabaseClientFactory.getDatabaseClient(props.getProperty("DBTYPE"));
+    dbDriver.connect(props.getProperty("DBTYPE"), props.getProperty("DBURI"));
+
 
 
     httpClient = HttpClient.newBuilder()
@@ -114,136 +118,67 @@ public class GraphDBClient extends DB {
     }
   }
 
+
   @Override
   public Status getVertexCount() {
-   try{
-     String query = "MATCH (n: YCSBVertex) RETURN count(n) as count";
-     dbDriver.executeQuery(query);
-//     String reqBody = "{ \"query\": \""+ query+"\", \"params\": null }";
-//     String targetString = props.getProperty("HOSTURI") + "/read";
-//      URI target = new URI(targetString);
-//      HttpRequest request = HttpRequest.newBuilder()
-//          .uri(target)
-//          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-//          .header("Content-Type", "application/json")
-//          .build();
-//      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-////      System.out.println("Response status code: " + response.statusCode());
-////      System.out.println("Response body: " + response.body());
-      return Status.OK;
-    } catch (Exception e) {
-     return Status.ERROR;
-   }
+//    System.out.println("Get Vertex Count");
+    boolean result = dbDriver.getVertexCount();
+//    boolean result = dbDriver.executeQuery("MATCH (n) RETURN count(n)");
+    if(!result){
+      return Status.ERROR;
+    }
+    return Status.OK;
   }
 
   @Override
   public Status getEdgeCount() {
-    try{
-      String query = "MATCH ()-[r: YCSBEdge]->() RETURN count(r) as count";
-      dbDriver.executeQuery(query);
-//      String reqBody = "{ \"query\": \""+ query+"\", \"params\": null }";
-//      String targetString = props.getProperty("HOSTURI") + "/read";
-//      URI target = new URI(targetString);
-//      HttpRequest request = HttpRequest.newBuilder()
-//          .uri(target)
-//          .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-//          .header("Content-Type", "application/json")
-//          .build();
-//      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-////      System.out.println("Response status code: " + response.statusCode());
-////      System.out.println("Response body: " + response.body());
-      return Status.OK;
-    } catch (Exception e) {
+//    System.out.println("Get Edge Count");
+    boolean result = dbDriver.getEdgeCount();
+//    boolean result = dbDriver.executeQuery("MATCH ()-[r]->() RETURN count(r)");
+    if(!result){
       return Status.ERROR;
     }
+    return Status.OK;
   }
 
   @Override
   public Status getEdgeLabels() {
-   try{
-      String query = "MATCH ()-[r: YCSBEdge]->() RETURN DISTINCT type(r) as label";
-      dbDriver.executeQuery(query);
-//      String reqBody = "{ \"query\": \""+ query+"\", \"params\": null }";
-//      String targetString = props.getProperty("HOSTURI") + "/read";
-//        URI target = new URI(targetString);
-//        HttpRequest request = HttpRequest.newBuilder()
-//            .uri(target)
-//            .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-//            .header("Content-Type", "application/json")
-//            .build();
-//        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-////        System.out.println("Response status code: " + response.statusCode());
-////        System.out.println("Response body: " + response.body());
-        return Status.OK;
-      } catch (Exception e) {
+    boolean result = dbDriver.getEdgeLabels();
+    if(!result){
       return Status.ERROR;
-   }
+    }
+    return Status.OK;
   }
 
   @Override
   public Status getVertexWithProperty(String key, ByteIterator value) {
-   try{
-      String query = "MATCH (n: YCSBVertex) WHERE n."+ key +" = '"+ value.toString() +"' RETURN n";
-      dbDriver.executeQuery(query);
-//      String reqBody = "{ \"query\": \""+ query+"\", \"params\": null }";
-//      String targetString = props.getProperty("HOSTURI") + "/read";
-//        URI target = new URI(targetString);
-//        HttpRequest request = HttpRequest.newBuilder()
-//            .uri(target)
-//            .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-//            .header("Content-Type", "application/json")
-//            .build();
-//        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-////        System.out.println("Response status code: " + response.statusCode());
-////        System.out.println("Response body: " + response.body());
-        return Status.OK;
-      } catch (Exception e) {
+    boolean result = dbDriver.getVertexWithProperty(key, value.toString());
+
+    //    boolean result = dbDriver.executeQuery("MATCH (n {"+key+": '"+value.toString()+"'}) RETURN n");
+    if(!result) {
       return Status.ERROR;
-   }
+    }
+    return Status.OK;
   }
 
   @Override
   public Status getEdgeWithProperty(String key, ByteIterator value) {
-    try{
-        String query = "MATCH ()-[r: YCSBEdge]->() WHERE r."+ key +" = '"+ value.toString() +"' RETURN r";
-        dbDriver.executeQuery(query);
-//        String reqBody = "{ \"query\": \""+ query+"\", \"params\": null }";
-//        String targetString = props.getProperty("HOSTURI") + "/read";
-//          URI target = new URI(targetString);
-//          HttpRequest request = HttpRequest.newBuilder()
-//              .uri(target)
-//              .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-//              .header("Content-Type", "application/json")
-//              .build();
-//          HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-////          System.out.println("Response status code: " + response.statusCode());
-////          System.out.println("Response body: " + response.body());
-          return Status.OK;
-        } catch (Exception e) {
-        return Status.ERROR;
+    boolean result = dbDriver.getEdgeWithProperty(key, value.toString());
+//    boolean result = dbDriver.executeQuery("MATCH ()-[r {"+key+": '"+value.toString()+"'}]->() RETURN r");
+    if(!result) {
+      return Status.ERROR;
     }
+    return Status.OK;
   }
 
   @Override
   public Status getEdgesWithLabel(String label) {
-    try{
-        String query = "MATCH ()-[r: YCSBEdge]->() WHERE type(r) = '"+ label +"' RETURN r";
-        dbDriver.executeQuery(query);
-//        String reqBody = "{ \"query\": \""+ query+"\", \"params\": null }";
-//        String targetString = props.getProperty("HOSTURI") + "/read";
-//          URI target = new URI(targetString);
-//          HttpRequest request = HttpRequest.newBuilder()
-//              .uri(target)
-//              .POST(HttpRequest.BodyPublishers.ofString(reqBody))
-//              .header("Content-Type", "application/json")
-//              .build();
-//          HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-////          System.out.println("Response status code: " + response.statusCode());
-////          System.out.println("Response body: " + response.body());
-          return Status.OK;
-        } catch (Exception e) {
-        return Status.ERROR;
+    boolean result = dbDriver.getEdgesWithLabel(label);
+//    boolean result = dbDriver.executeQuery("MATCH ()-[r:"+label+"]->() RETURN r");
+    if(!result) {
+      return Status.ERROR;
     }
+    return Status.OK;
   }
 
   @Override
