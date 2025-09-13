@@ -2,6 +2,7 @@ package site.ycsb.db;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.result.InsertOneResult;
@@ -262,7 +263,10 @@ public class MongoDBClient extends DB {
   @Override
   public  Status getEdgeWithProperty(String key, ByteIterator value) {
     try{
-      this.mongoClient.getDatabase("grace").getCollection("edges").find(new org.bson.Document(key, value.toString()));
+      FindIterable<Document> result = this.mongoClient.getDatabase("grace").getCollection("edges").find(new Document(key, value.toString()));
+      for (Document doc : result) {
+        doc.toJson();
+      }
     } catch (Exception e){
       System.out.println("Exception in getEdgeWithProperty: " + e.getMessage());
       return Status.ERROR;
@@ -273,7 +277,10 @@ public class MongoDBClient extends DB {
   @Override
   public Status getEdgesWithLabel(String label) {
     try{
-      this.mongoClient.getDatabase("grace").getCollection("edges").find(new org.bson.Document("label", label));
+      FindIterable<Document> result = this.mongoClient.getDatabase("grace").getCollection("edges").find(new Document("label", label));
+      for (Document doc : result) {
+
+      }
     } catch (Exception e){
       System.out.println("Exception in getEdgesWithLabel: " + e.getMessage());
       return Status.ERROR;
