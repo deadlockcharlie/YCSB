@@ -49,6 +49,11 @@ LICENSE file.
       <artifactId>arangodb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
+      <artifactId>mongodb-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
 <!--    <dependency>-->
 <!--      <groupId>site.ycsb</groupId>-->
