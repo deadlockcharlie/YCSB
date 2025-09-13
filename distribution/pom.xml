@@ -54,6 +54,11 @@ LICENSE file.
       <artifactId>mongodb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
+      <artifactId>janusgraph-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
 <!--    <dependency>-->
 <!--      <groupId>site.ycsb</groupId>-->
