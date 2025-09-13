@@ -46,9 +46,10 @@ LICENSE file.
     </dependency>
     <dependency>
       <groupId>site.ycsb</groupId>
-      <artifactId>graphdb-binding</artifactId>
+      <artifactId>arangodb-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
+
 <!--    <dependency>-->
 <!--      <groupId>site.ycsb</groupId>-->
 <!--      <artifactId>accumulo1.9-binding</artifactId>-->

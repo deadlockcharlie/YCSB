@@ -38,5 +38,4 @@ createproportion=1
 deleteproportion=1
 
 requestdistribution=latest
-HOSTURI=http://localhost:3000
 

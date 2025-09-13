@@ -88,6 +88,7 @@ public class ClientThread implements Runnable {
   @Override
   public void run() {
     try {
+      System.out.println("Using Database: " + db.getClass().getName());
       db.init();
     } catch (DBException e) {
       e.printStackTrace();

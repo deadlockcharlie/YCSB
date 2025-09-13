@@ -425,6 +425,7 @@ public final class Client {
       for (int threadid = 0; threadid < threadcount; threadid++) {
         DB db;
         try {
+          System.out.println("Initializing db: " + dbname);
           db = DBFactory.newDB(dbname, props, tracer);
         } catch (UnknownDBException e) {
           System.out.println("Unknown DB " + dbname);
