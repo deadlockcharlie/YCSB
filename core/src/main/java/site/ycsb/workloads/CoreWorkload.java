@@ -429,6 +429,7 @@ public class CoreWorkload extends Workload {
     if (dataintegrity) {
       System.out.println("Data integrity is enabled.");
     }
+    orderedinserts = false;
 
 //    if (p.getProperty(CREATE_ORDER_PROPERTY, CREATE_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
 //      orderedinserts = false;
@@ -764,7 +765,8 @@ public class CoreWorkload extends Workload {
       return;
     }
     Collections.shuffle(insertedEdges);
-    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
+    String key = insertedEdges.get(0);
+//    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
     HashMap<String, ByteIterator> values = buildValues(key);
     String field = (String) values.keySet().toArray()[0];
     db.setEdgeProperty(key, field, values.get(field));

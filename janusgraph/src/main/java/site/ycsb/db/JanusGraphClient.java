@@ -106,7 +106,7 @@ public class JanusGraphClient extends DB{
   public Status setVertexProperty(String id, String key, ByteIterator value) {
     try{
       GraphTraversal<Vertex, Vertex> t = this.g.V().has("i", id).property(key, value.toString());
-      t.valueMap().next();
+      t.valueMap().iterate();
 //      this.client.submit("g.V().has('i', i).property(k, v)", Map.of("i", id, "k", key, "v", value.toString()));
       return Status.OK;
     } catch (Exception e){
@@ -118,7 +118,7 @@ public class JanusGraphClient extends DB{
   @Override
   public Status setEdgeProperty(String id, String key, ByteIterator value) {
     try {
-      this.g.E().has("i", id).property(key, value.toString()).valueMap().next();
+      this.g.E().has("i", id).property(key, value.toString()).valueMap().iterate();
 //      this.client.submit("g.E().has('i', i).property(k, v)", Map.of("i", id, "k", key, "v", value.toString()));
       return Status.OK;
     } catch (Exception e) {
@@ -157,11 +157,11 @@ public class JanusGraphClient extends DB{
   @Override
   public Status removeVertexProperty(String id, String key) {
     try{
-      this.g.V().has("i", id).properties(key).drop().valueMap().next();
+      this.g.V().has("i", id).properties(key).drop().iterate();
 //      this.client.submit("g.V().has('i', i).properties(k).drop()", Map.of("i", id, "k", key));
       return Status.OK;
     }catch (Exception e){
-      System.out.println("Exception in removeVertexProperty: " + e.getMessage());
+      System.out.println("Exception in removeVertexProperty: " + e);
       return Status.ERROR;
     }
   }
@@ -169,11 +169,11 @@ public class JanusGraphClient extends DB{
   @Override
   public Status removeEdgeProperty(String id, String key) {
     try{
-      this.g.E().has("i", id).properties(key).drop().valueMap().next();
+      this.g.E().has("i", id).properties(key).drop().iterate();
 //      this.client.submit("g.E().has('i', i).properties(k).drop()", Map.of("i", id, "k", key));
       return Status.OK;
     }catch (Exception e){
-      System.out.println("Exception in removeEdgeProperty: " + e.getMessage());
+      System.out.println("Exception in removeEdgeProperty: " + e);
       return Status.ERROR;
     }
   }
