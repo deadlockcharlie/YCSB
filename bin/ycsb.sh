@@ -190,6 +190,7 @@ else
     else
       MVN_PROJECT="$BINDING_DIR"-binding
     fi
+    echo $MVN_PROJECT
 
     echo "[WARN] YCSB libraries not found.  Attempting to build..."
     if mvn -Psource-run -pl site.ycsb:"$MVN_PROJECT" -am package -DskipTests; then
