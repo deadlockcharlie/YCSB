@@ -52,7 +52,7 @@ public class ArangoDBClient extends DB {
       if (!db.exists()) {
         arangodb.createDatabase("ycsb");
         this.db = arangodb.db("ycsb");
-        int replicationFactor = props.getProperty("RELICATION_FACTOR") != null ? Integer.parseInt(props.getProperty("RELICATION_FACTOR")) : 1;
+        int replicationFactor = props.getProperty("REPLICATION_FACTOR") != null ? Integer.parseInt(props.getProperty("REPLICATION_FACTOR")) : 1;
         // Set collection options
         CollectionCreateOptions options = new CollectionCreateOptions()
             .replicationFactor(replicationFactor)  // replication factor of 3
