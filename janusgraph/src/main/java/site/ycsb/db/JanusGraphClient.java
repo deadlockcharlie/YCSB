@@ -2,6 +2,8 @@ package site.ycsb.db;
 
 import org.apache.tinkerpop.gremlin.driver.Client;
 import org.apache.tinkerpop.gremlin.driver.Cluster;
+import org.apache.tinkerpop.gremlin.process.remote.RemoteConnection;
+import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -40,17 +42,14 @@ public class JanusGraphClient extends DB{
     System.out.println("DBURI: "+props.getProperty("DBURI"));
     try{
       URI uri = new URI(props.getProperty("DBURI"));
-
       Cluster cluster = Cluster.build()
-          .addContactPoint(uri.getHost())
-          .port(uri.getPort())
-          .create();
-
+              .addContactPoint(uri.getHost())
+              .port(uri.getPort())
+              .create();
       Client client = cluster.connect();
-      this.g = org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
-          .traversal()
-          .withRemote(DriverRemoteConnection.using(client, "g"));
+      RemoteConnection connection = DriverRemoteConnection.using(client, "g");
 
+      this.g = AnonymousTraversalSource.traversal().withRemote(connection);
       System.out.println("Connected to Janusgraph successfully");
     } catch (Exception e) {
       System.out.println("Failed to connect to Janusgraph database: " + e.getMessage());
@@ -76,7 +75,7 @@ public class JanusGraphClient extends DB{
 
       return Status.OK;
     } catch (Exception e) {
-      System.out.println("Exception in addVertex: " + e.getMessage());
+      System.out.println("Exception in addVertex: " + e);
       return Status.ERROR;
     }
   }

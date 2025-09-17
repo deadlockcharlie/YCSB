@@ -2,6 +2,7 @@ package site.ycsb.db;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
+import com.mongodb.ReadConcern;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -43,6 +44,8 @@ public class MongoDBClient extends DB {
       this.mongoClient = MongoClients.create(
           MongoClientSettings.builder()
               .applyConnectionString(new ConnectionString(props.getProperty("DBURI")))
+              .readConcern(ReadConcern.LOCAL)
+              .writeConcern(com.mongodb.WriteConcern.MAJORITY)
               .build()
       );
 
