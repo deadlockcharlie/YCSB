@@ -2,7 +2,6 @@ package site.ycsb.db;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
@@ -65,13 +64,13 @@ public class GraceClient extends DB {
   }
 
   @Override
-  public Status addVertex(String label, String id, Map<String, ByteIterator> properties) {
+  public Status addVertex(String label, String id, Map<String, String> properties) {
 //    System.out.println("Add Vertex");
 //    return Status.OK;
     int status = 0;
     try {
       String vertexProperties = "";
-      for (Map.Entry<String, ByteIterator> entry : properties.entrySet()) {
+      for (Map.Entry<String, String> entry : properties.entrySet()) {
         vertexProperties += "\""+entry.getKey()+"\":\""+entry.getValue().toString()+"\",";
       }
 
@@ -94,11 +93,11 @@ public class GraceClient extends DB {
     }
   }
   @Override
-  public Status addEdge(String label, String id, String from, String to, Map<String, ByteIterator> properties) {
+  public Status addEdge(String label, String id, String from, String to, Map<String, String> properties) {
     int status = 0;
     try {
       String edgeProperties = "";
-      for (Map.Entry<String, ByteIterator> entry : properties.entrySet()) {
+      for (Map.Entry<String, String> entry : properties.entrySet()) {
         edgeProperties += "\""+entry.getKey()+"\":\""+entry.getValue().toString()+"\",";
       }
 
@@ -161,7 +160,7 @@ public class GraceClient extends DB {
   }
 
   @Override
-  public Status getVertexWithProperty(String key, ByteIterator value) {
+  public Status getVertexWithProperty(String key, String value) {
     boolean result = dbDriver.getVertexWithProperty(key, value.toString());
 
     //    boolean result = dbDriver.executeQuery("MATCH (n {"+key+": '"+value.toString()+"'}) RETURN n");
@@ -172,7 +171,7 @@ public class GraceClient extends DB {
   }
 
   @Override
-  public Status getEdgeWithProperty(String key, ByteIterator value) {
+  public Status getEdgeWithProperty(String key, String value) {
     boolean result = dbDriver.getEdgeWithProperty(key, value.toString());
 //    boolean result = dbDriver.executeQuery("MATCH ()-[r {"+key+": '"+value.toString()+"'}]->() RETURN r");
     if(!result) {
@@ -192,7 +191,7 @@ public class GraceClient extends DB {
   }
 
   @Override
-  public Status setVertexProperty(String id, String key, ByteIterator value) {
+  public Status setVertexProperty(String id, String key, String value) {
     try{
       String reqBody = " { \"id\": \""+id+"\", \"key\": \""+key+"\", \"value\": \""+value.toString()+"\"}";
       String targetString = props.getProperty("HOSTURI") + "/api/setVertexProperty";
@@ -212,7 +211,7 @@ public class GraceClient extends DB {
   }
 
   @Override
-  public Status setEdgeProperty(String id, String key, ByteIterator value) {
+  public Status setEdgeProperty(String id, String key, String value) {
     try {
       String reqBody = " { \"id\": \"" + id + "\", \"key\": \"" + key + "\", \"value\": \"" + value.toString() + "\"}";
       String targetString = props.getProperty("HOSTURI") + "/api/setEdgeProperty";
@@ -323,12 +322,12 @@ public class GraceClient extends DB {
 
 //
 //  @Override
-//  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+//  public Status read(String table, String key, Set<String> fields, Map<String, String> result) {
 //    return Status.OK;
 //  }
 //
 //  @Override
-//  public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+//  public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, String>> result) {
 //    try {
 //      String reqBody = " { \"limit\": \"23\"}";
 //      String targetString = props.getProperty("HOSTURI") + "/api/getGraph";
@@ -354,7 +353,7 @@ public class GraceClient extends DB {
 //  // CAUTION. WE need a delete API for the database we are testing. YCSB by default does not execute deletes.
 //  // The delete operation is implemented as an update, which is sent to the database.
 //  @Override
-//  public Status update(String table, String key, Map<String, ByteIterator> values) {
+//  public Status update(String table, String key, Map<String, String> values) {
 //    if (!(Vertices.isEmpty())) {
 //      int size = Vertices.size();
 //      int item = new Random().nextInt(size); // In real life, the Random object should be rather more shared than this
@@ -398,7 +397,7 @@ public class GraceClient extends DB {
 //  }
 //
 //  @Override
-//  public Status insert(String table, String key, Map<String, ByteIterator> values) {
+//  public Status insert(String table, String key, Map<String, String> values) {
 //    int status = 0;
 //    try {
 //      String edge = reader.readLine();

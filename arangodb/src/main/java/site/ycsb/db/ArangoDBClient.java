@@ -6,7 +6,6 @@ import com.arangodb.ArangoDatabase;
 import com.arangodb.model.CollectionCreateOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
@@ -72,13 +71,13 @@ public class ArangoDBClient extends DB {
   }
 
   @Override
-  public Status addVertex(String label, String id, Map<String, ByteIterator> properties) {
+  public Status addVertex(String label, String id, Map<String, String> properties) {
     int status = 0;
     try {
       Map<String, String> vertex = new HashMap<>();
 
       vertex.put("_key", id);
-      for (Map.Entry<String, ByteIterator> entry : properties.entrySet()) {
+      for (Map.Entry<String, String> entry : properties.entrySet()) {
         vertex.put(entry.getKey(), entry.getValue().toString());
       }
       db.collection("vertices").insertDocument(vertex);
@@ -88,14 +87,14 @@ public class ArangoDBClient extends DB {
     }
   }
   @Override
-  public Status addEdge(String label, String id, String from, String to, Map<String, ByteIterator> properties) {
+  public Status addEdge(String label, String id, String from, String to, Map<String, String> properties) {
     int status = 0;
     try {
       Map<String, String> edge = new HashMap<>();
       edge.put("_key", id);
       edge.put("_from", "vertices/" + from);
       edge.put("_to", "vertices/" + to);
-      for (Map.Entry<String, ByteIterator> entry : properties.entrySet()) {
+      for (Map.Entry<String, String> entry : properties.entrySet()) {
         edge.put(entry.getKey(), entry.getValue().toString());
       }
       db.collection("edges").insertDocument(edge);
@@ -139,7 +138,7 @@ public class ArangoDBClient extends DB {
   }
 
   @Override
-  public Status getVertexWithProperty(String key, ByteIterator value) {
+  public Status getVertexWithProperty(String key, String value) {
     try{
       String query = "FOR v IN vertices FILTER v."+key+" ==\" "+value.toString()+"\" RETURN v";
       ArangoCursor<String> cursor = db.query(query, String.class);
@@ -151,7 +150,7 @@ public class ArangoDBClient extends DB {
   }
 
   @Override
-  public Status getEdgeWithProperty(String key, ByteIterator value) {
+  public Status getEdgeWithProperty(String key, String value) {
     try {
       String query = "FOR e IN edges FILTER e."+key+" ==\" "+value.toString()+"\" RETURN e";
 //      System.out.println(query);
@@ -181,7 +180,7 @@ public class ArangoDBClient extends DB {
   }
 
   @Override
-  public Status setVertexProperty(String id, String key, ByteIterator value) {
+  public Status setVertexProperty(String id, String key, String value) {
     try{
       Map vertex = db.collection("vertices").getDocument(id, Map.class);
       vertex.put(key, value.toString());
@@ -193,7 +192,7 @@ public class ArangoDBClient extends DB {
   }
 
   @Override
-  public Status setEdgeProperty(String id, String key, ByteIterator value) {
+  public Status setEdgeProperty(String id, String key, String value) {
     try {
       Map edge = db.collection("edges").getDocument(id, Map.class);
       edge.put(key, value.toString());
@@ -256,12 +255,12 @@ public class ArangoDBClient extends DB {
 
 //
 //  @Override
-//  public Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
+//  public Status read(String table, String key, Set<String> fields, Map<String, String> result) {
 //    return Status.OK;
 //  }
 //
 //  @Override
-//  public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+//  public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, String>> result) {
 //    try {
 //      String reqBody = " { \"limit\": \"23\"}";
 //      String targetString = props.getProperty("HOSTURI") + "/api/getGraph";
@@ -287,7 +286,7 @@ public class ArangoDBClient extends DB {
 //  // CAUTION. WE need a delete API for the database we are testing. YCSB by default does not execute deletes.
 //  // The delete operation is implemented as an update, which is sent to the database.
 //  @Override
-//  public Status update(String table, String key, Map<String, ByteIterator> values) {
+//  public Status update(String table, String key, Map<String, String> values) {
 //    if (!(Vertices.isEmpty())) {
 //      int size = Vertices.size();
 //      int item = new Random().nextInt(size); // In real life, the Random object should be rather more shared than this
@@ -331,7 +330,7 @@ public class ArangoDBClient extends DB {
 //  }
 //
 //  @Override
-//  public Status insert(String table, String key, Map<String, ByteIterator> values) {
+//  public Status insert(String table, String key, Map<String, String> values) {
 //    int status = 0;
 //    try {
 //      String edge = reader.readLine();

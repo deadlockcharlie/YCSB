@@ -28,5 +28,6 @@ venv/
 *.png
 *.ods
 *.tar
-
+Edges.loaded
+Vertices.loaded
 rocksdb.dir

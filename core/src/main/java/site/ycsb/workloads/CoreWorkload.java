@@ -17,11 +17,18 @@
 
 package site.ycsb.workloads;
 
+import org.apache.htrace.shaded.fasterxml.jackson.core.JsonFactory;
+import org.apache.htrace.shaded.fasterxml.jackson.core.JsonParser;
+import org.apache.htrace.shaded.fasterxml.jackson.core.JsonToken;
 import site.ycsb.*;
 import site.ycsb.generator.*;
 import site.ycsb.generator.UniformLongGenerator;
 import site.ycsb.measurements.Measurements;
+import sun.security.util.ArrayUtil;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
@@ -69,137 +76,12 @@ public class CoreWorkload extends Workload {
   /**
    * The name of the database table to run queries against.
    */
-  public static final String TABLENAME_PROPERTY = "table";
-  public static List<String> insertedVertices = Collections.synchronizedList(new ArrayList<String>());
-  public static List<String> insertedEdges = Collections.synchronizedList(new ArrayList<String>());
-  /**
-   * The default name of the database table to run queries against.
-   */
-  public static final String TABLENAME_PROPERTY_DEFAULT = "usertable";
+  public static LinkedList<String> loadedVertices = new LinkedList<>();
+  public static LinkedList<String> loadedEdges = new LinkedList<>();
 
-  protected String table;
+  public static LinkedList<String> insertedVertices = new LinkedList<>();
+  public static LinkedList<String> insertedEdges = new LinkedList<>();
 
-  /**
-   * The name of the property for the number of fields in a record.
-   */
-  public static final String FIELD_COUNT_PROPERTY = "fieldcount";
-
-  /**
-   * Default number of fields in a record.
-   */
-  public static final String FIELD_COUNT_PROPERTY_DEFAULT = "10";
-  
-  private List<String> fieldnames;
-
-  /**
-   * The name of the property for the field length distribution. Options are "uniform", "zipfian"
-   * (favouring short records), "constant", and "histogram".
-   * <p>
-   * If "uniform", "zipfian" or "constant", the maximum field length will be that specified by the
-   * fieldlength property. If "histogram", then the histogram will be read from the filename
-   * specified in the "fieldlengthhistogram" property.
-   */
-  public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY = "fieldlengthdistribution";
-
-  /**
-   * The default field length distribution.
-   */
-  public static final String FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT = "constant";
-
-  /**
-   * The name of the property for the length of a field in bytes.
-   */
-  public static final String FIELD_LENGTH_PROPERTY = "fieldlength";
-
-  /**
-   * The default maximum length of a field in bytes.
-   */
-  public static final String FIELD_LENGTH_PROPERTY_DEFAULT = "100";
-
-  /**
-   * The name of the property for the minimum length of a field in bytes.
-   */
-  public static final String MIN_FIELD_LENGTH_PROPERTY = "minfieldlength";
-
-  /**
-   * The default minimum length of a field in bytes.
-   */
-  public static final String MIN_FIELD_LENGTH_PROPERTY_DEFAULT = "1";
-
-  /**
-   * The name of a property that specifies the filename containing the field length histogram (only
-   * used if fieldlengthdistribution is "histogram").
-   */
-  public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY = "fieldlengthhistogram";
-
-  /**
-   * The default filename containing a field length histogram.
-   */
-  public static final String FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT = "hist.txt";
-
-  /**
-   * Generator object that produces field lengths.  The value of this depends on the properties that
-   * start with "FIELD_LENGTH_".
-   */
-  protected NumberGenerator fieldlengthgenerator;
-
-  /**
-   * The name of the property for deciding whether to read one field (false) or all fields (true) of
-   * a record.
-   */
-  public static final String READ_ALL_FIELDS_PROPERTY = "readallfields";
-
-  /**
-   * The default value for the readallfields property.
-   */
-  public static final String READ_ALL_FIELDS_PROPERTY_DEFAULT = "true";
-
-  protected boolean readallfields;
-
-  /**
-   * The name of the property for determining how to read all the fields when readallfields is true.
-   * If set to true, all the field names will be passed into the underlying client. If set to false,
-   * null will be passed into the underlying client. When passed a null, some clients may retrieve
-   * the entire row with a wildcard, which may be slower than naming all the fields.
-   */
-  public static final String READ_ALL_FIELDS_BY_NAME_PROPERTY = "readallfieldsbyname";
-
-  /**
-   * The default value for the readallfieldsbyname property.
-   */
-  public static final String READ_ALL_FIELDS_BY_NAME_PROPERTY_DEFAULT = "false";
-
-  protected boolean readallfieldsbyname;
-
-  /**
-   * The name of the property for deciding whether to write one field (false) or all fields (true)
-   * of a record.
-   */
-  public static final String WRITE_ALL_FIELDS_PROPERTY = "writeallfields";
-
-  /**
-   * The default value for the writeallfields property.
-   */
-  public static final String WRITE_ALL_FIELDS_PROPERTY_DEFAULT = "false";
-
-  protected boolean writeallfields;
-
-  /**
-   * The name of the property for deciding whether to check all returned
-   * data against the formation template to ensure data integrity.
-   */
-  public static final String DATA_INTEGRITY_PROPERTY = "dataintegrity";
-
-  /**
-   * The default value for the dataintegrity property.
-   */
-  public static final String DATA_INTEGRITY_PROPERTY_DEFAULT = "true";
-
-  /**
-   * Set to true if want to check correctness of reads. Must also
-   * be set to true during loading phase to function.
-   */
-  private boolean dataintegrity;
 
   /**
    * The name of the property for the proportion of transactions that are reads.
@@ -239,369 +121,233 @@ public class CoreWorkload extends Workload {
    */
   public static final String DELETE_PROPORTION_PROPERTY_DEFAULT = "0.0";
 
-
-
-
-  /**
-   * The name of the property for the the distribution of requests across the keyspace. Options are
-   * "uniform", "zipfian" and "latest"
-   */
-  public static final String REQUEST_DISTRIBUTION_PROPERTY = "requestdistribution";
-
-  /**
-   * The default distribution of requests across the keyspace.
-   */
-  public static final String REQUEST_DISTRIBUTION_PROPERTY_DEFAULT = "uniform";
-
-  /**
-   * The name of the property for adding zero padding to record numbers in order to match
-   * string sort order. Controls the number of 0s to left pad with.
-   */
-  public static final String ZERO_PADDING_PROPERTY = "zeropadding";
-
-  /**
-   * The default zero padding value. Matches integer sort order
-   */
-  public static final String ZERO_PADDING_PROPERTY_DEFAULT = "1";
-
-
-  /**
-   * Percentage data items that constitute the hot set.
-   */
-  public static final String HOTSPOT_DATA_FRACTION = "hotspotdatafraction";
-
-  /**
-   * Default value of the size of the hot set.
-   */
-  public static final String HOTSPOT_DATA_FRACTION_DEFAULT = "0.2";
-
-  /**
-   * Percentage operations that access the hot set.
-   */
-  public static final String HOTSPOT_OPN_FRACTION = "hotspotopnfraction";
-
-  /**
-   * Default value of the percentage operations accessing the hot set.
-   */
-  public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
-
-  /**
-   * How many times to retry when insertion of a single item to a DB fails.
-   */
-  public static final String CREATION_RETRY_LIMIT = "core_workload_insertion_retry_limit";
-  public static final String CREATION_RETRY_LIMIT_DEFAULT = "0";
-
-  /**
-   * On average, how long to wait between the retries, in seconds.
-   */
-  public static final String CREATION_RETRY_INTERVAL = "core_workload_insertion_retry_interval";
-  public static final String CREATION_RETRY_INTERVAL_DEFAULT = "3";
-
-  /**
-   * Field name prefix.
-   */
-  public static final String FIELD_NAME_PREFIX = "fieldnameprefix";
-
-  /**
-   * Default value of the field name prefix.
-   */
-  public static final String FIELD_NAME_PREFIX_DEFAULT = "field";
-
-  protected NumberGenerator keysequence;
   protected DiscreteGenerator operationchooser;
-  protected NumberGenerator keychooser;
-  protected NumberGenerator fieldchooser;
-  protected AcknowledgedCounterGenerator transactioninsertkeysequence;
-  protected NumberGenerator scanlength;
-  protected boolean orderedinserts;
-  protected long fieldcount;
-  protected long recordcount;
-  protected int zeropadding;
-  protected int creationRetryLimit;
-  protected int creationRetryInterval;
 
-  private Measurements measurements = Measurements.getMeasurements();
+  private RandomPropertyGenerator propertyPool = new RandomPropertyGenerator(1000, 8); // 1000 random strings, each length 8
 
-  public static String buildKeyName(long keynum, int zeropadding, boolean orderedinserts) {
-    if (!orderedinserts) {
-      keynum = Utils.hash(keynum);
+
+
+  public void ProcessVertexFile(DB db, Properties props) throws IOException{
+    String vertexFile = props.getProperty("loadVertexFile", "UNDEF");
+    if (vertexFile == "UNDEF"){
+      throw new RuntimeException("Vertex file not supplied in parameters");
     }
-    String value = Long.toString(keynum);
-    int fill = zeropadding - value.length();
-    String prekey = "user";
-    for (int i = 0; i < fill; i++) {
-      prekey += '0';
-    }
-    return prekey + value;
-  }
-
-  protected static NumberGenerator getFieldLengthGenerator(Properties p) throws WorkloadException {
-    NumberGenerator fieldlengthgenerator;
-    String fieldlengthdistribution = p.getProperty(
-        FIELD_LENGTH_DISTRIBUTION_PROPERTY, FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
-    int fieldlength =
-        Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY, FIELD_LENGTH_PROPERTY_DEFAULT));
-    int minfieldlength =
-        Integer.parseInt(p.getProperty(MIN_FIELD_LENGTH_PROPERTY, MIN_FIELD_LENGTH_PROPERTY_DEFAULT));
-    String fieldlengthhistogram = p.getProperty(
-        FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY, FIELD_LENGTH_HISTOGRAM_FILE_PROPERTY_DEFAULT);
-    if (fieldlengthdistribution.compareTo("constant") == 0) {
-      fieldlengthgenerator = new ConstantIntegerGenerator(fieldlength);
-    } else if (fieldlengthdistribution.compareTo("uniform") == 0) {
-      fieldlengthgenerator = new UniformLongGenerator(minfieldlength, fieldlength);
-    } else if (fieldlengthdistribution.compareTo("zipfian") == 0) {
-      fieldlengthgenerator = new ZipfianGenerator(minfieldlength, fieldlength);
-    } else if (fieldlengthdistribution.compareTo("histogram") == 0) {
-      try {
-        fieldlengthgenerator = new HistogramGenerator(fieldlengthhistogram);
-      } catch (IOException e) {
-        throw new WorkloadException(
-            "Couldn't read field length histogram file: " + fieldlengthhistogram, e);
+    System.out.println("Loading vertex data from: "+ vertexFile);
+    JsonFactory factory = new JsonFactory();
+    try (JsonParser parser = factory.createParser(new File(vertexFile))) {
+      if (parser.nextToken() != JsonToken.START_ARRAY) {
+        throw new IOException("Expected JSON array");
       }
-    } else {
-      throw new WorkloadException(
-          "Unknown field length distribution \"" + fieldlengthdistribution + "\"");
+
+      while (parser.nextToken() == JsonToken.START_OBJECT) {
+        String id = null;
+        String type = null;
+        Map<String, String> properties = new HashMap<>();
+
+        while (parser.nextToken() != JsonToken.END_OBJECT) {
+          String fieldName = parser.getCurrentName();
+          parser.nextToken();
+          String value = parser.getValueAsString();
+
+          switch (fieldName) {
+            case "_id":
+              id = value;
+              break;
+            case "_type":
+              type = value+"Type";
+              break;
+            default:
+              properties.put(fieldName, value);
+              break;
+          }
+
+        }
+        properties.put("searchKey", propertyPool.next());
+        appendVertexID(id);
+        db.addVertex(type, id, properties);
+
+//        // Example: store ID for fast lookup and keep properties in memory only if needed
+//        if (id != null) {
+//          loadedVertices.add(id);  // IDs used for reads
+//          updateVertexIds.add(id);   // IDs used for deletes
+//        }
+
+        // Properties map can be used immediately or stored somewhere
+        // e.g., db.addVertex(table, id, properties);
+      }
     }
-    return fieldlengthgenerator;
   }
 
-  /**
-   * Initialize the scenario.
-   * Called once, in the main client thread, before any operations are started.
-   */
+
+
+  public void ProcessEdgeFile(DB db, Properties props) throws IOException{
+    String edgeFile = props.getProperty("loadEdgeFile", "UNDEF");
+    if (edgeFile == "UNDEF"){
+      throw new RuntimeException("Edge file not supplied in parameters");
+    }
+    System.out.println("Loading edge data from: "+ edgeFile);
+    JsonFactory factory = new JsonFactory();
+    try (JsonParser parser = factory.createParser(new File(edgeFile))) {
+      if (parser.nextToken() != JsonToken.START_ARRAY) {
+        throw new IOException("Expected JSON array");
+      }
+
+      while (parser.nextToken() == JsonToken.START_OBJECT) {
+        String id = null;
+        String type = null;
+        String from = null;
+        String to= null;
+        Map<String, String> properties = new HashMap<>();
+
+        while (parser.nextToken() != JsonToken.END_OBJECT) {
+          String fieldName = parser.getCurrentName();
+          parser.nextToken();
+          String value = parser.getValueAsString();
+
+          switch (fieldName) {
+            case "_id":
+              id = value;
+              break;
+            case "_type":
+              type = value+"Type";
+              break;
+            case "_outV":
+              from = value;
+              break;
+            case "_inV":
+              to = value;
+              break;
+            default:
+              properties.put(fieldName, value);
+              break;
+          }
+
+        }
+        properties.put("searchKey", propertyPool.next());
+        appendEdgeID(id);
+        db.addEdge(type, id, from , to, properties);
+
+//        // Example: store ID for fast lookup and keep properties in memory only if needed
+//        if (id != null) {
+//          loadedVertices.add(id);  // IDs used for reads
+//          updateVertexIds.add(id);   // IDs used for deletes
+//        }
+
+        // Properties map can be used immediately or stored somewhere
+        // e.g., db.addVertex(table, id, properties);
+      }
+    }
+  }
+
+
+
+  @Override
+  public void loadData(DB db, Properties props) {
+    try {
+      vertexWriter = new BufferedWriter(new FileWriter("./Vertices.loaded", false));
+      edgeWriter = new BufferedWriter(new FileWriter("./Edges.loaded", false));
+
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to open ID files for writing", e);
+    }
+
+    System.out.println("Called load data in core workload. Loading data");
+    try {
+      ProcessVertexFile(db, props);
+      ProcessEdgeFile(db, props);
+    } catch (Exception e)
+    {
+      System.out.println("Error loading data.");
+      e.printStackTrace();
+    } finally {
+        closeWriters(); // <- flush & close buffers
+      }
+    }
+
+  private BufferedWriter vertexWriter;
+  private BufferedWriter edgeWriter;
+
+  private void appendVertexID(String id) {
+    try {
+      vertexWriter.write(id);
+      vertexWriter.newLine();
+    } catch (IOException e) {
+      System.err.println("Failed to write vertex ID: " + id);
+      e.printStackTrace();
+    }
+  }
+
+  private void appendEdgeID(String id) {
+    try {
+      edgeWriter.write(id);
+      edgeWriter.newLine();
+    } catch (IOException e) {
+      System.err.println("Failed to write edge ID: " + id);
+      e.printStackTrace();
+    }
+  }
+
+  public void closeWriters() {
+    try {
+      if (vertexWriter != null) {
+        vertexWriter.flush();
+        vertexWriter.close();
+        vertexWriter = null;
+      }
+      if (edgeWriter != null) {
+        edgeWriter.flush();
+        edgeWriter.close();
+        edgeWriter = null;
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+  private static LinkedList<String> loadIDs(String filename) {
+    LinkedList<String> ids = new LinkedList<>();
+    java.io.File file = new java.io.File(filename);
+    if(file.exists()) {
+      try(java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(file))) {
+        String line;
+        while((line = br.readLine()) != null) {
+          ids.add(line.trim());
+        }
+      } catch(Exception e) {
+        System.err.println("Failed to load IDs from " + filename);
+        e.printStackTrace();
+      }
+    }
+    return ids;
+  }
+
+  private JsonObjectStreamer vertexStreamer;
+  private JsonObjectStreamer edgeStreamer;
+
+
   @Override
   public void init(Properties p) throws WorkloadException {
-    table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
-    fieldcount =
-        Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
-    final String fieldnameprefix = p.getProperty(FIELD_NAME_PREFIX, FIELD_NAME_PREFIX_DEFAULT);
-    fieldnames = new ArrayList<>();
-    for (int i = 0; i < fieldcount; i++) {
-      fieldnames.add(fieldnameprefix + i);
-    }
-    fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
-
-    recordcount =
-        Long.parseLong(p.getProperty(Client.RECORD_COUNT_PROPERTY, Client.DEFAULT_RECORD_COUNT));
-    if (recordcount == 0) {
-      recordcount = Integer.MAX_VALUE;
-    }
-    String requestdistrib =
-        p.getProperty(REQUEST_DISTRIBUTION_PROPERTY, REQUEST_DISTRIBUTION_PROPERTY_DEFAULT);
-//    int minscanlength =
-//        Integer.parseInt(p.getProperty(MIN_SCAN_LENGTH_PROPERTY, MIN_SCAN_LENGTH_PROPERTY_DEFAULT));
-//    int maxscanlength =
-//        Integer.parseInt(p.getProperty(MAX_SCAN_LENGTH_PROPERTY, MAX_SCAN_LENGTH_PROPERTY_DEFAULT));
-//    String scanlengthdistrib =
-//        p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY, SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
-
-    long insertstart =
-        Long.parseLong(p.getProperty(CREATE_START_PROPERTY, CREATE_START_PROPERTY_DEFAULT));
-    long insertcount=
-        Integer.parseInt(p.getProperty(CREATE_COUNT_PROPERTY, String.valueOf(recordcount - insertstart)));
-    // Confirm valid values for insertstart and insertcount in relation to recordcount
-    if (recordcount < (insertstart + insertcount)) {
-      System.err.println("Invalid combination of insertstart, insertcount and recordcount.");
-      System.err.println("recordcount must be bigger than insertstart + insertcount.");
-      System.exit(-1);
-    }
-    zeropadding =
-        Integer.parseInt(p.getProperty(ZERO_PADDING_PROPERTY, ZERO_PADDING_PROPERTY_DEFAULT));
-
-    readallfields = Boolean.parseBoolean(
-        p.getProperty(READ_ALL_FIELDS_PROPERTY, READ_ALL_FIELDS_PROPERTY_DEFAULT));
-    readallfieldsbyname = Boolean.parseBoolean(
-        p.getProperty(READ_ALL_FIELDS_BY_NAME_PROPERTY, READ_ALL_FIELDS_BY_NAME_PROPERTY_DEFAULT));
-    writeallfields = Boolean.parseBoolean(
-        p.getProperty(WRITE_ALL_FIELDS_PROPERTY, WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
-
-    dataintegrity = Boolean.parseBoolean(
-        p.getProperty(DATA_INTEGRITY_PROPERTY, DATA_INTEGRITY_PROPERTY_DEFAULT));
-    // Confirm that fieldlengthgenerator returns a constant if data
-    // integrity check requested.
-    if (dataintegrity && !(p.getProperty(
-        FIELD_LENGTH_DISTRIBUTION_PROPERTY,
-        FIELD_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT)).equals("constant")) {
-      System.err.println("Must have constant field size to check data integrity.");
-      System.exit(-1);
-    }
-    if (dataintegrity) {
-      System.out.println("Data integrity is enabled.");
-    }
-    orderedinserts = false;
-
-//    if (p.getProperty(CREATE_ORDER_PROPERTY, CREATE_ORDER_PROPERTY_DEFAULT).compareTo("hashed") == 0) {
-//      orderedinserts = false;
-//    } else {
-//      orderedinserts = true;
-//    }
-
-    keysequence = new CounterGenerator(insertstart);
     operationchooser = createOperationGenerator(p);
+    // Load previously inserted IDs (if files exist)
+    loadedVertices = loadIDs("./Vertices.loaded");
+    loadedEdges = loadIDs("./Edges.loaded");
+    System.out.printf("Loaded %d vertices and %d edges%n", loadedVertices.size(), loadedEdges.size());
 
-    transactioninsertkeysequence = new AcknowledgedCounterGenerator(recordcount);
-    if (requestdistrib.compareTo("uniform") == 0) {
-      keychooser = new UniformLongGenerator(insertstart, insertstart + insertcount - 1);
-    } else if (requestdistrib.compareTo("exponential") == 0) {
-      double percentile = Double.parseDouble(p.getProperty(
-          ExponentialGenerator.EXPONENTIAL_PERCENTILE_PROPERTY,
-          ExponentialGenerator.EXPONENTIAL_PERCENTILE_DEFAULT));
-      double frac = Double.parseDouble(p.getProperty(
-          ExponentialGenerator.EXPONENTIAL_FRAC_PROPERTY,
-          ExponentialGenerator.EXPONENTIAL_FRAC_DEFAULT));
-      keychooser = new ExponentialGenerator(percentile, recordcount * frac);
-    } else if (requestdistrib.compareTo("sequential") == 0) {
-      keychooser = new SequentialGenerator(insertstart, insertstart + insertcount - 1);
-    } else if (requestdistrib.compareTo("zipfian") == 0) {
-      // it does this by generating a random "next key" in part by taking the modulus over the
-      // number of keys.
-      // If the number of keys changes, this would shift the modulus, and we don't want that to
-      // change which keys are popular so we'll actually construct the scrambled zipfian generator
-      // with a keyspace that is larger than exists at the beginning of the test. that is, we'll predict
-      // the number of inserts, and tell the scrambled zipfian generator the number of existing keys
-      // plus the number of predicted keys as the total keyspace. then, if the generator picks a key
-      // that hasn't been inserted yet, will just ignore it and pick another key. this way, the size of
-      // the keyspace doesn't change from the perspective of the scrambled zipfian generator
-      final double insertproportion = Double.parseDouble(
-          p.getProperty(CREATE_PROPORTION_PROPERTY, CREATE_PROPORTION_PROPERTY_DEFAULT));
-      int opcount = Integer.parseInt(p.getProperty(Client.OPERATION_COUNT_PROPERTY));
-      int expectednewkeys = (int) ((opcount) * insertproportion * 2.0); // 2 is fudge factor
-
-      keychooser = new ScrambledZipfianGenerator(insertstart, insertstart + insertcount + expectednewkeys);
-    } else if (requestdistrib.compareTo("latest") == 0) {
-      keychooser = new SkewedLatestGenerator(transactioninsertkeysequence);
-    } else if (requestdistrib.equals("hotspot")) {
-      double hotsetfraction =
-          Double.parseDouble(p.getProperty(HOTSPOT_DATA_FRACTION, HOTSPOT_DATA_FRACTION_DEFAULT));
-      double hotopnfraction =
-          Double.parseDouble(p.getProperty(HOTSPOT_OPN_FRACTION, HOTSPOT_OPN_FRACTION_DEFAULT));
-      keychooser = new HotspotIntegerGenerator(insertstart, insertstart + insertcount - 1,
-          hotsetfraction, hotopnfraction);
-    } else {
-      throw new WorkloadException("Unknown request distribution \"" + requestdistrib + "\"");
-    }
-
-    fieldchooser = new UniformLongGenerator(0, fieldcount - 1);
-
-//    if (scanlengthdistrib.compareTo("uniform") == 0) {
-//      scanlength = new UniformLongGenerator(minscanlength, maxscanlength);
-//    } else if (scanlengthdistrib.compareTo("zipfian") == 0) {
-//      scanlength = new ZipfianGenerator(minscanlength, maxscanlength);
-//    } else {
-//      throw new WorkloadException(
-//          "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
-//    }
-
-    creationRetryLimit = Integer.parseInt(p.getProperty(
-        CREATION_RETRY_LIMIT, CREATION_RETRY_LIMIT_DEFAULT));
-    creationRetryInterval = Integer.parseInt(p.getProperty(
-        CREATION_RETRY_INTERVAL, CREATION_RETRY_INTERVAL_DEFAULT));
-  }
-
-  /**
-   * Builds a value for a randomly chosen field.
-   */
-  private HashMap<String, ByteIterator> buildSingleValue(String key) {
-    HashMap<String, ByteIterator> value = new HashMap<>();
-
-    String fieldkey = fieldnames.get(fieldchooser.nextValue().intValue());
-    ByteIterator data;
-    if (dataintegrity) {
-      data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
-    } else {
-      // fill with random data
-      data = new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
-    }
-    value.put(fieldkey, data);
-
-    return value;
-  }
-
-  /**
-   * Builds values for all fields.
-   */
-  private HashMap<String, ByteIterator> buildValues(String key) {
-    HashMap<String, ByteIterator> values = new HashMap<>();
-
-    for (String fieldkey : fieldnames) {
-      ByteIterator data;
-      if (dataintegrity) {
-        data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
-      } else {
-        // fill with random data
-        data = new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
+    try{
+      if(p.getProperty("vertexAddFile") == null){
+        throw new WorkloadException("vertexAddFile must be provided for the update workload");
       }
-      values.put(fieldkey, data);
+      if(p.getProperty("edgeAddFile") == null){
+        throw new WorkloadException("edgeAddFile must be provided for the update workload");
+      }
+      vertexStreamer = new JsonObjectStreamer(p.getProperty("vertexAddFile"));
+      edgeStreamer = new JsonObjectStreamer(p.getProperty("edgeAddFile"));
+
+    } catch (IOException e){
+      throw new WorkloadException("Failed to open update workload");
     }
-    return values;
+
   }
-
-  /**
-   * Build a deterministic value given the key information.
-   */
-  private String buildDeterministicValue(String key, String fieldkey) {
-    int size = fieldlengthgenerator.nextValue().intValue();
-    StringBuilder sb = new StringBuilder(size);
-    sb.append(key);
-    sb.append(':');
-    sb.append(fieldkey);
-    while (sb.length() < size) {
-      sb.append(':');
-      sb.append(sb.toString().hashCode());
-    }
-    sb.setLength(size);
-
-    return sb.toString();
-  }
-
-
-
-//
-//
-//
-//  /**
-//   * Do one insert operation. Because it will be called concurrently from multiple client threads,
-//   * this function must be thread safe. However, avoid synchronized, or the threads will block waiting
-//   * for each other, and it will be difficult to reach the target throughput. Ideally, this function would
-//   * have no side effects other than DB operations.
-//   */
-//  @Override
-//  public boolean doInsert(DB db, Object threadstate) {
-//    int keynum = keysequence.nextValue().intValue();
-//    String dbkey = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-//    HashMap<String, ByteIterator> values = buildValues(dbkey);
-//
-//    Status status;
-//    int numOfRetries = 0;
-//    do {
-//      status = db.insert(table, dbkey, values);
-//      if (null != status && status.isOk()) {
-//        break;
-//      }
-//      // Retry if configured. Without retrying, the load process will fail
-//      // even if one single insertion fails. User can optionally configure
-//      // an insertion retry limit (default is 0) to enable retry.
-//      if (++numOfRetries <= insertionRetryLimit) {
-//        System.err.println("Retrying insertion, retry count: " + numOfRetries);
-//        try {
-//          // Sleep for a random number between [0.8, 1.2)*insertionRetryInterval.
-//          int sleepTime = (int) (1000 * insertionRetryInterval * (0.8 + 0.4 * Math.random()));
-//          Thread.sleep(sleepTime);
-//        } catch (InterruptedException e) {
-//          break;
-//        }
-//
-//      } else {
-//        System.err.println("Error inserting, not retrying any more. number of attempts: " + numOfRetries +
-//            "Insertion Retry Limit: " + insertionRetryLimit);
-//        break;
-//
-//      }
-//    } while (true);
-//
-//    return null != status && status.isOk();
-//  }
 
   /**
    * Do one transaction operation. Because it will be called concurrently from multiple client
@@ -667,47 +413,37 @@ public class CoreWorkload extends Workload {
     return true;
   }
 
-  long nextKeynum() {
-    long keynum;
-    if (keychooser instanceof ExponentialGenerator) {
-      do {
-        keynum = transactioninsertkeysequence.lastValue() - keychooser.nextValue().intValue();
-      } while (keynum < 0);
-    } else {
-      do {
-        keynum = keychooser.nextValue().intValue();
-      } while (keynum > transactioninsertkeysequence.lastValue());
-    }
-    return keynum;
-  }
+
 
 
 
   public void doTransactionAddVertex(DB db) {
-    // choose a random key
-    long keynum = nextKeynum();
-
-    String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-    if(insertedVertices.contains(keyname)){
-      return;
+    try {
+      Map<String, String> obj = vertexStreamer.nextObject();
+      if (obj == null) return; // no more vertices
+      String id = obj.remove("_id");
+      String type = obj.remove("_type")+"Type";
+      insertedVertices.add(id);
+      db.addVertex(type,id, obj);
+      
+    } catch (IOException e){
+      System.out.println("Error fetching next vertex from the update workload");
     }
-    HashMap<String, ByteIterator> values = buildValues(keyname);
-    db.addVertex(table, keyname, values);
-    insertedVertices.add(keyname);
-
   }
 
   public void doTransactionAddEdge(DB db) {
-    // choose a random key
-    if (insertedVertices.size() >= 2) {
-      Collections.shuffle(insertedVertices);
-      long keynum = nextKeynum();
-      String keyname = CoreWorkload.buildKeyName(keynum, zeropadding, orderedinserts);
-      String source = insertedVertices.get(0);
-      String target = insertedVertices.get(1);
-      HashMap<String, ByteIterator> values = buildValues(source + "-" + target);
-      db.addEdge(table, keyname, source, target, values);
-      insertedEdges.add(keyname);
+    try {
+      Map<String, String> obj = edgeStreamer.nextObject();
+      if (obj == null) return; // no more edges
+
+      String id = obj.remove("_id");
+      String type = obj.remove("_type")+"Type";
+      String from = obj.remove("_outV");
+      String to = obj.remove("_inV");
+      insertedEdges.add(id);
+      db.addEdge(type, id, from, to, obj);
+    }catch(IOException e){
+      System.out.println("Error fetching next edge from the update workload");
     }
   }
 
@@ -721,99 +457,53 @@ public class CoreWorkload extends Workload {
     db.getEdgeLabels();
   }
   public void doTransactionGetVertexWithProperty(DB db) {
-    if(insertedVertices.isEmpty()) {
-      return;
-    }
-   Collections.shuffle(insertedVertices);
-   String key = insertedVertices.get(0);
-   HashMap<String, ByteIterator> values = buildValues(key);
-   //pick one string from values
-    String fieldkey = (String) values.keySet().toArray()[0];
-    ByteIterator fieldValue = values.get(fieldkey);
-
-   db.getVertexWithProperty(fieldkey, fieldValue);
+    db.getVertexWithProperty("searchKey", propertyPool.next());
   }
   public void doTransactionGetEdgeWithProperty(DB db) {
-    if(insertedEdges.isEmpty()) {
-      return;
-    }
-    Collections.shuffle(insertedEdges);
-    String key = insertedEdges.get(0);
-    HashMap<String, ByteIterator> values = buildValues(key);
-    //pick one string from values
-    String fieldkey = (String) values.keySet().toArray()[0];
-    ByteIterator fieldValue = values.get(fieldkey);
-    db.getEdgeWithProperty(fieldkey, fieldValue);
+    db.getEdgeWithProperty("searchKey", propertyPool.next());
   }
   public void doTransactionGetEdgesWithLabel(DB db) {
-    db.getEdgesWithLabel(table);
+    db.getEdgesWithLabel(propertyPool.next());
   }
 
   public void doTransactionSetVertexProperty(DB db) {
-    if(insertedVertices.isEmpty()) {
-      return;
-    }
-    Collections.shuffle(insertedVertices);
-    String key = insertedVertices.get(0);
-//    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
-    HashMap<String, ByteIterator> values = buildValues(key);
-    String field = (String) values.keySet().toArray()[0];
-    db.setVertexProperty(key, field, values.get(field));
+    String id = loadedVertices.getFirst();
+
+    db.setVertexProperty(id, "searchKey", propertyPool.next());
+
   }
   public void doTransactionSetEdgeProperty(DB db) {
-    if(insertedEdges.isEmpty()) {
-      return;
-    }
-    Collections.shuffle(insertedEdges);
-    String key = insertedEdges.get(0);
-//    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
-    HashMap<String, ByteIterator> values = buildValues(key);
-    String field = (String) values.keySet().toArray()[0];
-    db.setEdgeProperty(key, field, values.get(field));
+    String id = loadedEdges.getFirst();
+    db.setEdgeProperty(id,"searchKey", propertyPool.next());
+
   }
   public void doTransactionRemoveVertex(DB db) {
-    if (insertedVertices.isEmpty()) {
+    if(insertedVertices.isEmpty()){
       return;
     }
-    Collections.shuffle(insertedVertices);
-    String key = insertedVertices.get(0);
-    db.removeVertex(key);
-    insertedVertices.removeIf(k -> k.equals(key));
-
+    String id = insertedVertices.getFirst();
+    db.removeVertex(id);
+    insertedVertices.remove(id);
   }
   public void doTransactionRemoveEdge(DB db) {
-    if (insertedEdges.isEmpty()) {
+    if(insertedEdges.isEmpty()){
       return;
     }
-    Collections.shuffle(insertedEdges);
-    String key = insertedEdges.get(0);
 
-//    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
-    db.removeEdge(key);
-    insertedEdges.removeIf(k -> k.equals(key));
+    String id = insertedEdges.getFirst();
+    db.removeEdge(id);
+    insertedEdges.remove(id);
   }
 
   public void doTransactionRemoveVertexProperty(DB db) {
-    if (insertedVertices.isEmpty()) {
-      return;
-    }
-    Collections.shuffle(insertedVertices);
-    String key = insertedVertices.get(0);
-//    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
-    HashMap<String, ByteIterator> values = buildValues(key);
-    String field = (String) values.keySet().toArray()[0];
-    db.removeVertexProperty(key, field);
+    String id = loadedVertices.getFirst();
+    db.removeVertexProperty(id,"searchKey");
+
   }
   public void doTransactionRemoveEdgeProperty(DB db) {
-    if (insertedEdges.isEmpty()) {
-      return;
-    }
-    Collections.shuffle(insertedEdges);
-    String key = insertedEdges.get(0);
-//    String key = buildKeyName(nextKeynum(), zeropadding, orderedinserts);
-    HashMap<String, ByteIterator> values = buildValues(key);
-    String field = (String) values.keySet().toArray()[0];
-    db.removeEdgeProperty(key, field);
+    String id = loadedEdges.getFirst();
+    db.removeEdgeProperty(id, "searchKey");
+
   }
 
 //

@@ -78,18 +78,18 @@ public abstract class DB {
   }
 
   //CREATE
-  public abstract Status addVertex(String label, String id, Map<String, ByteIterator> properties);
-  public abstract Status addEdge(String label, String id,  String from, String to, Map<String, ByteIterator> properties);
+  public abstract Status addVertex(String label, String id, Map<String, String> properties);
+  public abstract Status addEdge(String label, String id,  String from, String to, Map<String, String> properties);
   //READ
   public abstract Status getVertexCount();
   public abstract Status getEdgeCount();
   public abstract Status getEdgeLabels();
-  public abstract Status getVertexWithProperty(String key, ByteIterator value);
-  public abstract Status getEdgeWithProperty(String key, ByteIterator value);
+  public abstract Status getVertexWithProperty(String key, String value);
+  public abstract Status getEdgeWithProperty(String key, String value);
   public abstract Status getEdgesWithLabel(String label);
   //UPDATE
-  public abstract Status setVertexProperty(String id, String key, ByteIterator value);
-  public abstract Status setEdgeProperty(String id, String key, ByteIterator value);
+  public abstract Status setVertexProperty(String id, String key, String value);
+  public abstract Status setEdgeProperty(String id, String key, String value);
   //DELETE
   public abstract Status removeVertex(String id);
   public abstract Status removeEdge(String id);

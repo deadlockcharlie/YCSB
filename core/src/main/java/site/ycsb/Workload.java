@@ -93,6 +93,10 @@ public abstract class Workload {
   }
 
   /**
+   * Load the data from the vertex and edge files supplied with the parameters.
+   */
+  public abstract void loadData(DB db, Properties props);
+  /**
    * Do one transaction operation. Because it will be called concurrently from multiple client threads, this
    * function must be thread safe. However, avoid synchronized, or the threads will block waiting for each
    * other, and it will be difficult to reach the target throughput. Ideally, this function would have no side

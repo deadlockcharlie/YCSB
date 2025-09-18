@@ -129,18 +129,8 @@ public class ClientThread implements Runnable {
           throttleNanos(startTimeNanos);
         }
       } else {
-        long startTimeNanos = System.nanoTime();
-
-        while (((opcount == 0) || (opsdone < opcount)) && !workload.isStopRequested()) {
-
-//          if (!workload.do(db, workloadstate)) {
-//            break;
-//          }
-
-          opsdone++;
-
-          throttleNanos(startTimeNanos);
-        }
+        System.out.println("Load parameter is true. Loading data from the vertex and edge files.");
+        workload.loadData(db, props);
       }
     } catch (Exception e) {
       e.printStackTrace();

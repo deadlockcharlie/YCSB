@@ -9,7 +9,6 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.result.InsertOneResult;
 
 import org.bson.Document;
-import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
@@ -65,21 +64,22 @@ public class MongoDBClient extends DB {
 
 
   @Override
-  public Status addVertex(String label, String id, Map<String, ByteIterator> properties) {
+  public Status addVertex(String label, String id, Map<String, String> properties) {
 //    System.out.println("Add Vertex");
 //    return Status.OK;
     int status = 0;
 
     try {
+//      System.out.println("Adding vertex with id: " + id);
       Document vertex = new Document();
       vertex.append("label", label);
       vertex.append("id", id);
       Document props = new Document();
-      for (Map.Entry<String, ByteIterator> entry : properties.entrySet()) {
+      for (Map.Entry<String, String> entry : properties.entrySet()) {
         props.append(entry.getKey(), entry.getValue().toString());
       }
       vertex.append("properties", props);
-    this.mongoClient.getDatabase("grace").getCollection("vertices").insertOne(vertex);
+      InsertOneResult result = this.mongoClient.getDatabase("grace").getCollection("vertices").insertOne(vertex);
 //      System.out.println("Inserted vertex with id: " + result);
       return Status.OK;
     } catch (Exception e) {
@@ -87,7 +87,7 @@ public class MongoDBClient extends DB {
     }
   }
   @Override
-  public Status addEdge(String label, String id, String from, String to, Map<String, ByteIterator> properties) {
+  public Status addEdge(String label, String id, String from, String to, Map<String, String> properties) {
     int status = 0;
     try {
       Document edge = new Document();
@@ -96,11 +96,12 @@ public class MongoDBClient extends DB {
       edge.append("from", from);
       edge.append("to", to);
       Document props = new Document();
-      for (Map.Entry<String, ByteIterator> entry : properties.entrySet()) {
+      for (Map.Entry<String, String> entry : properties.entrySet()) {
         props.append(entry.getKey(), entry.getValue().toString());
       }
       edge.append("properties", props);
-      this.mongoClient.getDatabase("grace").getCollection("edges").insertOne(edge);
+      InsertOneResult result = this.mongoClient.getDatabase("grace").getCollection("edges").insertOne(edge);
+//      System.out.println("Inserted edge with id: " + result);
       return Status.OK;
     } catch (Exception e) {
       return Status.ERROR;
@@ -110,7 +111,7 @@ public class MongoDBClient extends DB {
 
 
   @Override
-  public Status setVertexProperty(String id, String key, ByteIterator value) {
+  public Status setVertexProperty(String id, String key, String value) {
     try{
       Document vertex = this.mongoClient.getDatabase("grace").getCollection("vertices").find(new Document("id", id)).first();
       if(vertex==null){
@@ -130,7 +131,7 @@ public class MongoDBClient extends DB {
   }
 
   @Override
-  public Status setEdgeProperty(String id, String key, ByteIterator value) {
+  public Status setEdgeProperty(String id, String key, String value) {
     try {
       Document edge = this.mongoClient.getDatabase("grace").getCollection("edges").find(new Document("id", id)).first();
       if (edge == null) {
@@ -247,10 +248,11 @@ public class MongoDBClient extends DB {
   }
 
   @Override
-  public Status getVertexWithProperty(String key, ByteIterator value) {
+  public Status getVertexWithProperty(String key, String value) {
     try{
       AtomicLong count= new AtomicLong();
-      this.mongoClient.getDatabase("grace").getCollection("vertices").find(new org.bson.Document(key, value.toString())).forEach(doc -> {
+      System.out.println("Searching for vertices with " + key + " = " + value);
+      this.mongoClient.getDatabase("grace").getCollection("vertices").find(new org.bson.Document(key, value)).forEach(doc -> {
         // Print the document
         System.out.println(doc.toJson());
         count.getAndIncrement();
@@ -264,7 +266,7 @@ public class MongoDBClient extends DB {
   }
 
   @Override
-  public  Status getEdgeWithProperty(String key, ByteIterator value) {
+  public  Status getEdgeWithProperty(String key, String value) {
     try{
       FindIterable<Document> result = this.mongoClient.getDatabase("grace").getCollection("edges").find(new Document(key, value.toString()));
       for (Document doc : result) {

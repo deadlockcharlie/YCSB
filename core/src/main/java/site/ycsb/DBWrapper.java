@@ -160,7 +160,7 @@ public class DBWrapper extends DB {
   }
 
 
-    public Status addVertex(String table, String vertexId, Map<String, ByteIterator> properties) {
+    public Status addVertex(String table, String vertexId, Map<String, String> properties) {
       try (final TraceScope span = tracer.newScope(scopeAddVertex)) {
         long ist = measurements.getIntendedStartTimeNs();
         long st = System.nanoTime();
@@ -171,7 +171,7 @@ public class DBWrapper extends DB {
         return res;
       }
     }
-    public Status addEdge(String table, String fromVertexId, String toVertexId, String label, Map<String, ByteIterator> properties) {
+    public Status addEdge(String table, String fromVertexId, String toVertexId, String label, Map<String, String> properties) {
       try (final TraceScope span = tracer.newScope(scopeAddEdge)) {
         long ist = measurements.getIntendedStartTimeNs();
         long st = System.nanoTime();
@@ -218,7 +218,7 @@ public class DBWrapper extends DB {
       }
     }
 
-    public Status getVertexWithProperty(String key, ByteIterator value) {
+    public Status getVertexWithProperty(String key, String value) {
       try (final TraceScope span = tracer.newScope(scopeGetVertexWithProperty)) {
         long ist = measurements.getIntendedStartTimeNs();
         long st = System.nanoTime();
@@ -229,7 +229,7 @@ public class DBWrapper extends DB {
         return res;
       }
     }
-    public Status getEdgeWithProperty(String key, ByteIterator value) {
+    public Status getEdgeWithProperty(String key, String value) {
       try (final TraceScope span = tracer.newScope(scopeGetEdgeWithProperty)) {
         long ist = measurements.getIntendedStartTimeNs();
         long st = System.nanoTime();
@@ -252,7 +252,7 @@ public class DBWrapper extends DB {
       }
     }
 
-    public Status setVertexProperty(String vertexId, String key, ByteIterator value) {
+    public Status setVertexProperty(String vertexId, String key, String value) {
       try (final TraceScope span = tracer.newScope(scopeSetVertexProperty)) {
         long ist = measurements.getIntendedStartTimeNs();
         long st = System.nanoTime();
@@ -263,7 +263,7 @@ public class DBWrapper extends DB {
         return res;
       }
     }
-    public Status setEdgeProperty(String edgeId, String key, ByteIterator value) {
+    public Status setEdgeProperty(String edgeId, String key, String value) {
       try (final TraceScope span = tracer.newScope(scopeSetEdgeProperty)) {
         long ist = measurements.getIntendedStartTimeNs();
         long st = System.nanoTime();
