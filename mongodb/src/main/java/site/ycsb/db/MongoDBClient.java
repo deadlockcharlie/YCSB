@@ -251,7 +251,7 @@ public class MongoDBClient extends DB {
   public Status getVertexWithProperty(String key, String value) {
     try{
       AtomicLong count= new AtomicLong();
-      System.out.println("Searching for vertices with " + key + " = " + value);
+//      System.out.println("Searching for vertices with " + key + " = " + value);
       this.mongoClient.getDatabase("grace").getCollection("vertices").find(new org.bson.Document(key, value)).forEach(doc -> {
         // Print the document
         System.out.println(doc.toJson());
