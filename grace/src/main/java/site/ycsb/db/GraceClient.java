@@ -71,7 +71,7 @@ public class GraceClient extends DB {
     try {
       String vertexProperties = "";
       for (Map.Entry<String, String> entry : properties.entrySet()) {
-        vertexProperties += "\""+entry.getKey()+"\":\""+entry.getValue().toString()+"\",";
+        vertexProperties += "\""+entry.getKey()+"\":\""+ entry.getValue() +"\",";
       }
 
       String reqBody = " { \"label\": [\"YCSBVertex\"], \"properties\": {"+vertexProperties+"\"id\":\""+id+"\"}}";
@@ -101,10 +101,8 @@ public class GraceClient extends DB {
         edgeProperties += "\""+entry.getKey()+"\":\""+entry.getValue().toString()+"\",";
       }
 
-      String reqBody = " { \"sourceLabel\": [\"YCSBVertex\"] "+
-                            ",\"sourcePropName\": \"id\"" +
+      String reqBody = " { \"sourcePropName\": \"id\"" +
                             ",\"sourcePropValue\":\"" + from +"\""+
-                            ",\"targetLabel\": [\"YCSBVertex\"]" +
                             ",\"targetPropName\": \"id\"" +
                             ",\"targetPropValue\":\"" + to +"\""+
                             ",\"relationType\": [\"YCSBEdge\"]" +

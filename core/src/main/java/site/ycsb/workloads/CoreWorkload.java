@@ -134,7 +134,9 @@ public class CoreWorkload extends Workload {
     }
     System.out.println("Loading vertex data from: "+ vertexFile);
     JsonFactory factory = new JsonFactory();
-    try (JsonParser parser = factory.createParser(new File(vertexFile))) {
+    File file = new File(vertexFile);
+    long totalBytes = file.length();
+    try (JsonParser parser = factory.createParser(file)) {
       if (parser.nextToken() != JsonToken.START_ARRAY) {
         throw new IOException("Expected JSON array");
       }
@@ -166,6 +168,11 @@ public class CoreWorkload extends Workload {
         appendVertexID(id);
         db.addVertex(type, id, properties);
 
+//        // --- Progress bar ---
+//        long currentBytes = parser.getCurrentLocation().getByteOffset();
+//        int percent = (int) ((currentBytes * 100.0) / totalBytes);
+//        System.out.printf("\rVertices load progress: %d%%", percent);
+
 //        // Example: store ID for fast lookup and keep properties in memory only if needed
 //        if (id != null) {
 //          loadedVertices.add(id);  // IDs used for reads
@@ -187,7 +194,9 @@ public class CoreWorkload extends Workload {
     }
     System.out.println("Loading edge data from: "+ edgeFile);
     JsonFactory factory = new JsonFactory();
-    try (JsonParser parser = factory.createParser(new File(edgeFile))) {
+    File file = new File(edgeFile);
+    long totalBytes = file.length();
+    try (JsonParser parser = factory.createParser(file)) {
       if (parser.nextToken() != JsonToken.START_ARRAY) {
         throw new IOException("Expected JSON array");
       }
@@ -226,6 +235,11 @@ public class CoreWorkload extends Workload {
         properties.put("searchKey", propertyPool.next());
         appendEdgeID(id);
         db.addEdge(type, id, from , to, properties);
+//
+//        // --- Progress bar ---
+//        long currentBytes = parser.getCurrentLocation().getByteOffset();
+//        int percent = (int) ((currentBytes * 100.0) / totalBytes);
+//        System.out.printf("\rEdges load progress: %d%%", percent);
 
 //        // Example: store ID for fast lookup and keep properties in memory only if needed
 //        if (id != null) {
