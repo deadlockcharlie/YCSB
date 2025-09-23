@@ -177,11 +177,11 @@ public class MongoDBClient extends DB {
     try{
       Document vertex = this.mongoClient.getDatabase("grace").getCollection("vertices").find(new Document("id", id)).first();
       if(vertex==null){
-        return Status.ERROR;
+        return Status.OK;
       }
       Document props = (Document) vertex.get("properties");
       if(props==null || !props.containsKey(key)){
-        return Status.ERROR;
+        return Status.OK;
       }
       props.remove(key);
       vertex.put("properties", props);
@@ -197,11 +197,11 @@ public class MongoDBClient extends DB {
     try{
       Document edge = this.mongoClient.getDatabase("grace").getCollection("edges").find(new Document("id", id)).first();
       if(edge==null){
-        return Status.ERROR;
+        return Status.OK;
       }
       Document props = (Document) edge.get("properties");
       if(props==null || !props.containsKey(key)){
-        return Status.ERROR;
+        return Status.OK;
       }
       props.remove(key);
       edge.put("properties", props);

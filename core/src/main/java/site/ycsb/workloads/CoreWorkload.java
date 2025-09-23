@@ -436,7 +436,7 @@ public class CoreWorkload extends Workload {
       Map<String, String> obj = vertexStreamer.nextObject();
       if (obj == null) return; // no more vertices
       String id = obj.remove("_id");
-      String type = obj.remove("_type")+"Type";
+      String type = "YCSBVertex";
       insertedVertices.add(id);
       db.addVertex(type,id, obj);
       
@@ -451,7 +451,7 @@ public class CoreWorkload extends Workload {
       if (obj == null) return; // no more edges
 
       String id = obj.remove("_id");
-      String type = obj.remove("_type")+"Type";
+      String type = "YCSBEdge";
       String from = obj.remove("_outV");
       String to = obj.remove("_inV");
       insertedEdges.add(id);
