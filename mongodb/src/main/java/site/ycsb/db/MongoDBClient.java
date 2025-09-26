@@ -44,7 +44,7 @@ public class MongoDBClient extends DB {
           MongoClientSettings.builder()
               .applyConnectionString(new ConnectionString(props.getProperty("DBURI")))
               .readConcern(ReadConcern.LOCAL)
-              .writeConcern(com.mongodb.WriteConcern.MAJORITY)
+              .writeConcern(com.mongodb.WriteConcern.ACKNOWLEDGED)
               .build()
       );
 
