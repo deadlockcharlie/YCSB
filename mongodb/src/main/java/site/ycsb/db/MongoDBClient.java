@@ -6,16 +6,22 @@ import com.mongodb.ReadConcern;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.InsertOneResult;
 
 import org.bson.Document;
+import org.bson.types.ObjectId;
 import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class MongoDBClient extends DB {
 
@@ -73,7 +79,7 @@ public class MongoDBClient extends DB {
 //      System.out.println("Adding vertex with id: " + id);
       Document vertex = new Document();
       vertex.append("label", label);
-      vertex.append("id", id);
+      vertex.append("_id", id);
       Document props = new Document();
       for (Map.Entry<String, String> entry : properties.entrySet()) {
         props.append(entry.getKey(), entry.getValue().toString());
@@ -92,7 +98,7 @@ public class MongoDBClient extends DB {
     try {
       Document edge = new Document();
       edge.append("label", label);
-      edge.append("id", id);
+      edge.append("_id", id);
       edge.append("from", from);
       edge.append("to", to);
       Document props = new Document();
@@ -113,19 +119,24 @@ public class MongoDBClient extends DB {
   @Override
   public Status setVertexProperty(String id, String key, String value) {
     try{
-      Document vertex = this.mongoClient.getDatabase("grace").getCollection("vertices").find(new Document("id", id)).first();
-      if(vertex==null){
-        return Status.ERROR;
-      }
-      Document props = (Document) vertex.get("properties");
-      if(props==null){
-        props = new Document();
-      }
-      props.append(key, value.toString());
-      vertex.put("properties", props);
-      this.mongoClient.getDatabase("grace").getCollection("vertices").replaceOne(new Document("id", id), vertex);
+      this.mongoClient.getDatabase("grace").getCollection("vertices").updateOne(new Document("_id", id), new Document("$set", new Document("properties." + key, value)), new com.mongodb.client.model.UpdateOptions().upsert(true));
+//      Document vertex = this.mongoClient.getDatabase("grace").getCollection("vertices").find().limit(1).first();
+//      if(vertex==null){
+//        System.out.println("Vertex not found with id: " + id);
+//        return Status.ERROR;
+//      }
+//      System.out.println("Found vertex: " + vertex.toJson());
+//      Document props = (Document) vertex.get("properties");
+//      if(props==null){
+//        props = new Document();
+//      }
+//      props.append(key, value);
+//      vertex.put("properties", props);
+//      System.out.println("Updating vertex with id: " + id + " to have properties: " + vertex.toJson());
+//      this.mongoClient.getDatabase("grace").getCollection("vertices").updateOne(new Document("_id", id), new Document("$set", vertex));
       return Status.OK;
     } catch (Exception e){
+      System.out.println("Exception in setVertexProperty: " + e.getMessage());
       return Status.ERROR;
     }
   }
@@ -133,17 +144,18 @@ public class MongoDBClient extends DB {
   @Override
   public Status setEdgeProperty(String id, String key, String value) {
     try {
-      Document edge = this.mongoClient.getDatabase("grace").getCollection("edges").find(new Document("id", id)).first();
-      if (edge == null) {
-        return Status.ERROR;
-      }
-      Document props = (Document) edge.get("properties");
-      if (props == null) {
-        props = new Document();
-      }
-      props.append(key, value.toString());
-      edge.put("properties", props);
-      this.mongoClient.getDatabase("grace").getCollection("edges").replaceOne(new Document("id", id), edge);
+      this.mongoClient.getDatabase("grace").getCollection("edges").updateOne(new Document("_id", id), new Document("$set", new Document("properties." + key, value)), new com.mongodb.client.model.UpdateOptions().upsert(true));
+//      Document edge = this.mongoClient.getDatabase("grace").getCollection("edges").find().limit(1).first();
+//      if (edge == null) {
+//        return Status.ERROR;
+//      }
+//      Document props = (Document) edge.get("properties");
+//      if (props == null) {
+//        props = new Document();
+//      }
+//      props.append(key, value.toString());
+//      edge.put("properties", props);
+//      this.mongoClient.getDatabase("grace").getCollection("edges").replaceOne(new Document("_id", id), edge);
       return Status.OK;
     } catch (Exception e) {
       return Status.ERROR;
@@ -154,7 +166,7 @@ public class MongoDBClient extends DB {
   public Status removeVertex(String id) {
     int status = 0;
     try {
-      this.mongoClient.getDatabase("grace").getCollection("vertices").deleteOne(new Document("id", id));
+      this.mongoClient.getDatabase("grace").getCollection("vertices").deleteOne(new Document("_id", id));
       return Status.OK;
     } catch (Exception e) {
       return Status.ERROR;
@@ -165,7 +177,7 @@ public class MongoDBClient extends DB {
   public Status removeEdge(String id) {
     int status = 0;
     try {
-      this.mongoClient.getDatabase("grace").getCollection("edges").deleteOne(new Document("id", id));
+      this.mongoClient.getDatabase("grace").getCollection("edges").deleteOne(new Document("_id", id));
       return Status.OK;
     } catch (Exception e) {
       return Status.ERROR;
@@ -175,19 +187,44 @@ public class MongoDBClient extends DB {
   @Override
   public Status removeVertexProperty(String id, String key) {
     try{
-      Document vertex = this.mongoClient.getDatabase("grace").getCollection("vertices").find(new Document("id", id)).first();
-      if(vertex==null){
-        return Status.OK;
+
+      Document doc = this.mongoClient.getDatabase("grace").getCollection("vertices").find(Filters.eq("_id", id)).first();
+
+      if (doc != null) {
+        // Get field names (excluding _id)
+        List<String> fieldNames = doc.keySet().stream()
+            .filter(k -> !k.equals("_id"))
+            .collect(Collectors.toList());
+
+        if (!fieldNames.isEmpty()) {
+          // Select random field
+          Random random = new Random();
+          String randomField = fieldNames.get(random.nextInt(fieldNames.size()));
+
+          // Remove it
+          this.mongoClient.getDatabase("grace").getCollection("vertices").updateOne(
+              Filters.eq("_id", id),
+              Updates.unset(randomField)
+          );
+
+//          System.out.println("Removed field: " + randomField);
+        }
       }
-      Document props = (Document) vertex.get("properties");
-      if(props==null || !props.containsKey(key)){
-        return Status.OK;
-      }
-      props.remove(key);
-      vertex.put("properties", props);
-      this.mongoClient.getDatabase("grace").getCollection("vertices").replaceOne(new Document("id", id), vertex);
+//      Document vertex = this.mongoClient.getDatabase("grace").getCollection("vertices").find().limit(1).first();
+//      if(vertex==null){
+//        System.out.println("Vertex not found");
+//        return Status.OK;
+//      }
+//      Document props = (Document) vertex.get("properties");
+//      if(props==null || !props.containsKey(key)){
+//        return Status.OK;
+//      }
+//      props.remove(key);
+//      vertex.put("properties", props);
+//      this.mongoClient.getDatabase("grace").getCollection("vertices").replaceOne(new Document("_id", vertex.get("_id")), vertex);
       return Status.OK;
     }catch (Exception e){
+      System.out.println("Exception in removeVertexProperty: " + e.getMessage());
       return Status.ERROR;
     }
   }
@@ -195,17 +232,37 @@ public class MongoDBClient extends DB {
   @Override
   public Status removeEdgeProperty(String id, String key) {
     try{
-      Document edge = this.mongoClient.getDatabase("grace").getCollection("edges").find(new Document("id", id)).first();
-      if(edge==null){
-        return Status.OK;
-      }
-      Document props = (Document) edge.get("properties");
-      if(props==null || !props.containsKey(key)){
-        return Status.OK;
-      }
-      props.remove(key);
-      edge.put("properties", props);
-      this.mongoClient.getDatabase("grace").getCollection("edges").replaceOne(new Document("id", id), edge);
+
+      Document doc = this.mongoClient.getDatabase("grace").getCollection("edges").find(Filters.eq("_id", id)).first();
+
+      if (doc != null) {
+        // Get field names (excluding _id)
+        List<String> fieldNames = doc.keySet().stream()
+            .filter(k -> !k.equals("_id"))
+            .collect(Collectors.toList());
+
+        if (!fieldNames.isEmpty()) {
+          // Select random field
+          Random random = new Random();
+          String randomField = fieldNames.get(random.nextInt(fieldNames.size()));
+
+          // Remove it
+          this.mongoClient.getDatabase("grace").getCollection("edges").updateOne(
+              Filters.eq("_id", id),
+              Updates.unset(randomField)
+          );
+//      this.mongoClient.getDatabase("grace").getCollection("edges").updateOne(new Document("_id", id), new Document("$unset", new Document("oid", "")));
+//      Document edge = this.mongoClient.getDatabase("grace").getCollection("edges").find().limit(1).first();
+//      if(edge==null){
+//        return Status.OK;
+//      }
+//      Document props = (Document) edge.get("properties");
+//      if(props==null || !props.containsKey(key)){
+//        return Status.OK;
+//      }
+//      props.remove(key);
+//      edge.put("properties", props);
+//      this.mongoClient.getDatabase("grace").getCollection("edges").replaceOne(new Document("_id", edge.get("_id")), edge);
       return Status.OK;
     }catch (Exception e){
       return Status.ERROR;
