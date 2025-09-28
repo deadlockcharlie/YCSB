@@ -251,20 +251,10 @@ public class MongoDBClient extends DB {
               Filters.eq("_id", id),
               Updates.unset(randomField)
           );
-//      this.mongoClient.getDatabase("grace").getCollection("edges").updateOne(new Document("_id", id), new Document("$unset", new Document("oid", "")));
-//      Document edge = this.mongoClient.getDatabase("grace").getCollection("edges").find().limit(1).first();
-//      if(edge==null){
-//        return Status.OK;
-//      }
-//      Document props = (Document) edge.get("properties");
-//      if(props==null || !props.containsKey(key)){
-//        return Status.OK;
-//      }
-//      props.remove(key);
-//      edge.put("properties", props);
-//      this.mongoClient.getDatabase("grace").getCollection("edges").replaceOne(new Document("_id", edge.get("_id")), edge);
+        }
+      }
       return Status.OK;
-    }catch (Exception e){
+    } catch (Exception e){
       return Status.ERROR;
     }
   }
