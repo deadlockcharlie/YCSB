@@ -3,7 +3,11 @@ package site.ycsb.db;
 import com.arangodb.ArangoCursor;
 import com.arangodb.ArangoDB;
 import com.arangodb.ArangoDatabase;
+import com.arangodb.entity.DocumentCreateEntity;
+import com.arangodb.entity.DocumentUpdateEntity;
+import com.arangodb.entity.ReplicationFactor;
 import com.arangodb.model.CollectionCreateOptions;
+import com.arangodb.model.CollectionPropertiesOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import site.ycsb.DB;
@@ -51,16 +55,19 @@ public class ArangoDBClient extends DB {
       if (!db.exists()) {
         arangodb.createDatabase("ycsb");
         this.db = arangodb.db("ycsb");
-        int replicationFactor = props.getProperty("REPLICATION_FACTOR") != null ? Integer.parseInt(props.getProperty("REPLICATION_FACTOR")) : 1;
+//        int replicationFactor = props.getProperty("REPLICATION_FACTOR") != null ? Integer.parseInt(props.getProperty("REPLICATION_FACTOR")) : 1;
         // Set collection options
-        CollectionCreateOptions options = new CollectionCreateOptions()
-            .replicationFactor(replicationFactor)  // replication factor of 3
-            .writeConcern(replicationFactor);      // optional, how many copies must be written
+//        CollectionPropertiesOptions options = new CollectionPropertiesOptions()
+//            .replicationFactor(ReplicationFactor.of(replicationFactor))  // replication factor of 3
+//            .writeConcern(replicationFactor);      // optional, how many copies must be written
+//
+////        db.createCollection("vertices", options);
+////        db.createCollection("edges", options);
+//
+//
+//        db.collection("vertices").changeProperties(options);
+//        db.collection("edges").changeProperties(options);
 
-
-
-        db.createCollection("vertices", options);
-        db.createCollection("edges", options);
       }
       System.out.println("Connected to ArangoDB database successfully");
 
@@ -78,9 +85,11 @@ public class ArangoDBClient extends DB {
 
       vertex.put("_key", id);
       vertex.putAll(properties);
-      db.collection("vertices").insertDocument(vertex);
+      DocumentCreateEntity<Void> result = db.collection("vertices").insertDocument(vertex);
+//      System.out.println("Inserted vertex with id: " + result.getKey());
       return Status.OK;
     } catch (Exception e) {
+      System.out.println("Exception in addVertex: " + e.getMessage());
       return Status.ERROR;
     }
   }
@@ -180,9 +189,11 @@ public class ArangoDBClient extends DB {
     try{
       Map vertex = db.collection("vertices").getDocument(id, Map.class);
       vertex.put(key, value);
-      db.collection("vertices").updateDocument(id, vertex);
+      DocumentUpdateEntity<Void> result = db.collection("vertices").updateDocument(id, vertex);
+//      System.out.println("Updatinted vertex with id: " + result.getNew());
       return Status.OK;
     } catch (Exception e){
+      System.out.println("Exception in setVertexProperty: " + e.getMessage());
       return Status.ERROR;
     }
   }
@@ -190,12 +201,14 @@ public class ArangoDBClient extends DB {
   @Override
   public Status setEdgeProperty(String id, String key, String value) {
     try {
+//      System.out.println("Setting edge property for id: " + id + ", key: " + key + ", value: " + value);
       Map edge = db.collection("edges").getDocument(id, Map.class);
       edge.put(key, value);
-      db.collection("edges").updateDocument(id, edge);
-
+      DocumentUpdateEntity<Void> result = db.collection("edges").updateDocument(id, edge);
+//      System.out.println("Updated edge with id: " + result.getNew());
         return Status.OK;
     } catch (Exception e) {
+      System.out.println("Exception in setEdgeProperty: " + e.getMessage());
       return Status.ERROR;
     }
   }
